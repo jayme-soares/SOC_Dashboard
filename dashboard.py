@@ -37,7 +37,6 @@ if uploaded_file is not None:
     # A execução continua apenas se o dataframe for carregado com sucesso.
     if df_original is not None:
         st.sidebar.success("Planilha carregada com sucesso!")
-        
         # --- FILTROS GLOBAIS NA BARRA LATERAL ---
         st.sidebar.header("Filtros Globais")
         
@@ -67,7 +66,6 @@ if uploaded_file is not None:
             st.dataframe(df_filtrado)
 
         st.markdown("---")
-
         # --- CARTÕES DE INDICADORES (KPIs) ---
         total_atividades = len(df_filtrado)
         total_produtivo = df_filtrado[df_filtrado['Resultado'] == 'Produtivo'].shape[0]
@@ -96,7 +94,7 @@ if uploaded_file is not None:
                     df_para_grafico_equipe = df_filtrado[df_filtrado['Chefe/Responsável de Equipe'] == equipe_selecionada_grafico]
 
                 produtividade_equipe = df_para_grafico_equipe.groupby('Chefe/Responsável de Equipe')['Resultado'].value_counts().unstack().fillna(0)
-                fig = px.bar(produtividade_equipe, barmode='group', text_auto=True, color_discrete_map={'Produtivo': 'royalblue', 'Improdutivo': 'darkorange'}, title="Produtividade por Equipe")
+                fig = px.bar(produtividade_equipe, barmode='group', text_auto=True, color_discrete_map={'Produtivo': 'royalblue', 'Improdutivo': 'darkorange'}, title="Produtividade por Equipe", template=plotly_template)
                 fig.update_layout(xaxis_title=None, yaxis_title="Qtd. Atividades", legend_title="Resultado")
                 st.plotly_chart(fig, use_container_width=True)
             else:
@@ -119,7 +117,7 @@ if uploaded_file is not None:
                 produtividade_setor = df_para_grafico_setor['Resultado'].value_counts().reset_index()
                 produtividade_setor.columns = ['Resultado', 'Contagem']
 
-                fig = px.pie(produtividade_setor, names='Resultado', values='Contagem', title=titulo_grafico, color='Resultado', color_discrete_map={'Produtivo': 'royalblue', 'Improdutivo': 'darkorange'})
+                fig = px.pie(produtividade_setor, names='Resultado', values='Contagem', title=titulo_grafico, color='Resultado', color_discrete_map={'Produtivo': 'royalblue', 'Improdutivo': 'darkorange'}, template=plotly_template)
                 fig.update_traces(textinfo='percent+label')
                 st.plotly_chart(fig, use_container_width=True)
             else:
@@ -128,14 +126,13 @@ if uploaded_file is not None:
         st.markdown("---")
 
         # --- Layout em Colunas para as Tabelas de Resumo ---
-        st.header("Resumo Detalhado")
         col3, col4 = st.columns(2)
 
         # Coluna 3: Tabela de Resumo por Equipe e Setor
         with col3:
-            st.subheader("Resumo por Equipe")
+            st.subheader("Resumo por Equipe e Setor")
             if not df_filtrado.empty and all(col in df_filtrado.columns for col in ['Chefe/Responsável de Equipe', 'Setor', 'Resultado']):
-                resumo_equipe = pd.pivot_table(df_filtrado, index=['Chefe/Responsável de Equipe'], columns='Resultado', aggfunc='size', fill_value=0)
+                resumo_equipe = pd.pivot_table(df_filtrado, index=['Chefe/Responsável de Equipe', 'Setor'], columns='Resultado', aggfunc='size', fill_value=0)
                 if 'Produtivo' not in resumo_equipe: resumo_equipe['Produtivo'] = 0
                 if 'Improdutivo' not in resumo_equipe: resumo_equipe['Improdutivo'] = 0
                 resumo_equipe['Total Geral'] = resumo_equipe.sum(axis=1)
