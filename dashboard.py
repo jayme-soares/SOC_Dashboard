@@ -94,7 +94,7 @@ if uploaded_file is not None:
                     df_para_grafico_equipe = df_filtrado[df_filtrado['Chefe/Responsável de Equipe'] == equipe_selecionada_grafico]
 
                 produtividade_equipe = df_para_grafico_equipe.groupby('Chefe/Responsável de Equipe')['Resultado'].value_counts().unstack().fillna(0)
-                fig = px.bar(produtividade_equipe, barmode='group', text_auto=True, color_discrete_map={'Produtivo': 'royalblue', 'Improdutivo': 'darkorange'}, title="Produtividade por Equipe", template=plotly_template)
+                fig = px.bar(produtividade_equipe, barmode='group', text_auto=True, color_discrete_map={'Produtivo': 'royalblue', 'Improdutivo': 'darkorange'}, title="Produtividade por Equipe")
                 fig.update_layout(xaxis_title=None, yaxis_title="Qtd. Atividades", legend_title="Resultado")
                 st.plotly_chart(fig, use_container_width=True)
             else:
