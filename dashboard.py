@@ -117,7 +117,7 @@ if uploaded_file is not None:
                 produtividade_setor = df_para_grafico_setor['Resultado'].value_counts().reset_index()
                 produtividade_setor.columns = ['Resultado', 'Contagem']
 
-                fig = px.pie(produtividade_setor, names='Resultado', values='Contagem', title=titulo_grafico, color='Resultado', color_discrete_map={'Produtivo': 'royalblue', 'Improdutivo': 'darkorange'}, template=plotly_template)
+                fig = px.pie(produtividade_setor, names='Resultado', values='Contagem', title=titulo_grafico, color='Resultado', color_discrete_map={'Produtivo': 'royalblue', 'Improdutivo': 'darkorange'})
                 fig.update_traces(textinfo='percent+label')
                 st.plotly_chart(fig, use_container_width=True)
             else:
