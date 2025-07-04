@@ -5,7 +5,7 @@ import plotly.express as px
 
 # --- Configuração da Página ---
 st.set_page_config(
-    page_title="Parcial SOC - Maricá",
+    page_title="Produção Mensal SOC - Maricá",
     page_icon="📊",
     layout="wide"
 )
