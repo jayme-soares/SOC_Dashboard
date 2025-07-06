@@ -72,8 +72,8 @@ mes_referencia = mes_anterior_date.strftime("%B/%Y").capitalize()
 st.title(f"SOC Maricá - Produção Mensal (Mês Referência: {mes_referencia})")
 
 # --- Carregamento a partir do Google Sheets ---
-# IMPORTANTE: Coloque aqui o nome exato da sua Planilha Google
-NOME_DA_PLANILHA_GOOGLE = "base" 
+# IMPORTANTE: Este deve ser o nome exato da sua Planilha Google no Drive
+NOME_DA_PLANILHA_GOOGLE = "base.xlsx" 
 df_original = carregar_dados_de_gsheets(NOME_DA_PLANILHA_GOOGLE)
 
 # A execução do script continua apenas se o dataframe for carregado com sucesso.
