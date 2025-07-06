@@ -4,8 +4,8 @@ import pandas as pd
 import plotly.express as px
 from datetime import date, timedelta
 import locale
-import base64
-import io
+import gspread
+from google.oauth2.service_account import Credentials
 
 # --- Configuração da Página ---
 st.set_page_config(
@@ -14,18 +14,28 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- Carregamento e Limpeza dos Dados a partir de um Secret ---
+# --- Carregamento e Limpeza dos Dados a partir do Google Sheets ---
 @st.cache_data
-def carregar_dados_de_secret(base64_string):
+def carregar_dados_de_gsheets(nome_planilha):
     """
-    Carrega dados a partir de uma string Base64 armazenada nos Secrets.
+    Carrega dados de uma Planilha Google usando as credenciais dos Secrets.
     """
     try:
-        # Decodifica a string Base64 de volta para bytes
-        decoded_bytes = base64.b64decode(base64_string)
-        # Lê os bytes como um arquivo em memória
-        df = pd.read_excel(io.BytesIO(decoded_bytes))
+        # Define os escopos de acesso da API
+        scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+        # Carrega as credenciais a partir dos Secrets do Streamlit
+        creds = Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"], scopes=scopes
+        )
+        # Autoriza o gspread com as credenciais
+        client = gspread.authorize(creds)
         
+        # Abre a planilha pelo nome e pega a primeira aba
+        sheet = client.open(nome_planilha).sheet1
+        
+        # Converte os dados da planilha para um DataFrame do Pandas
+        df = pd.DataFrame(sheet.get_all_records())
+
         # Padroniza as colunas de texto para maiúsculas e remove espaços extras
         colunas_para_padronizar = ['Setor', 'Chefe/Responsável de Equipe', 'Resultado', 'Serviço', 'Tipo Operação']
         
@@ -34,13 +44,16 @@ def carregar_dados_de_secret(base64_string):
                 df[col] = df[col].astype(str)
                 df[col] = df[col].str.strip().str.replace(r'\s+', ' ', regex=True).str.upper()   
         return df
+    except gspread.exceptions.SpreadsheetNotFound:
+        st.error(f"Planilha com o nome '{nome_planilha}' não encontrada. Verifique o nome e se ela foi compartilhada com o e-mail de serviço.")
+        return None
     except Exception as e:
-        st.error(f"Ocorreu um erro ao processar os dados do secret: {e}")
+        st.error(f"Ocorreu um erro ao carregar os dados do Google Sheets: {e}")
         return None
 
 # --- Interface Principal do Dashboard ---
 
-# Define o locale para português do Brasil para obter o nome do mês corretamente
+# Define o locale para português do Brasil
 try:
     locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
 except locale.Error:
@@ -52,15 +65,12 @@ primeiro_dia_mes_atual = hoje.replace(day=1)
 mes_anterior_date = primeiro_dia_mes_atual - timedelta(days=1)
 mes_referencia = mes_anterior_date.strftime("%B/%Y").capitalize()
 
-st.title(f"SOC Maricá - Produção Mensal")
-st.title(f"{mes_referencia})")
-# --- Carregamento a partir dos Secrets do Streamlit ---
-df_original = None
-try:
-    # Tenta carregar os dados a partir do secret "EXCEL_BASE64"
-    df_original = carregar_dados_de_secret(st.secrets["EXCEL_BASE64"])
-except (KeyError, FileNotFoundError):
-    st.error("Secret 'EXCEL_BASE64' não encontrado. Por favor, configure os secrets nas configurações do seu app no Streamlit Cloud.")
+st.title(f"SOC Maricá - Produção Mensal (Mês Referência: {mes_referencia})")
+
+# --- Carregamento a partir do Google Sheets ---
+# IMPORTANTE: Coloque aqui o nome exato da sua Planilha Google
+NOME_DA_PLANILHA_GOOGLE = "base" 
+df_original = carregar_dados_de_gsheets(NOME_DA_PLANILHA_GOOGLE)
 
 # A execução do script continua apenas se o dataframe for carregado com sucesso.
 if df_original is not None:
