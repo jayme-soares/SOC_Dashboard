@@ -22,7 +22,11 @@ def carregar_dados_de_gsheets(nome_planilha):
     """
     try:
         # Define os escopos de acesso da API
-        scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+        # CORREÇÃO: Adicionado o escopo do Google Drive para permitir encontrar a planilha pelo nome.
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
         # Carrega as credenciais a partir dos Secrets do Streamlit
         creds = Credentials.from_service_account_info(
             st.secrets["gcp_service_account"], scopes=scopes
