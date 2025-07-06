@@ -4,6 +4,8 @@ import pandas as pd
 import plotly.express as px
 from datetime import date, timedelta
 import locale
+import base64
+import io
 
 # --- Configuração da Página ---
 st.set_page_config(
@@ -12,39 +14,37 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- Carregamento e Limpeza dos Dados ---
+# --- Carregamento e Limpeza dos Dados a partir de um Secret ---
 @st.cache_data
-def carregar_dados(caminho_arquivo):
+def carregar_dados_de_secret(base64_string):
     """
-    Carrega dados de um arquivo Excel a partir de um caminho local.
+    Carrega dados a partir de uma string Base64 armazenada nos Secrets.
     """
     try:
-        df = pd.read_excel(caminho_arquivo)
+        # Decodifica a string Base64 de volta para bytes
+        decoded_bytes = base64.b64decode(base64_string)
+        # Lê os bytes como um arquivo em memória
+        df = pd.read_excel(io.BytesIO(decoded_bytes))
         
         # Padroniza as colunas de texto para maiúsculas e remove espaços extras
         colunas_para_padronizar = ['Setor', 'Chefe/Responsável de Equipe', 'Resultado', 'Serviço', 'Tipo Operação']
         
         for col in colunas_para_padronizar:
             if col in df.columns:
-                # Converte para string para evitar erros com valores não-textuais
                 df[col] = df[col].astype(str)
-                # Aplica a limpeza: remove espaços, substitui múltiplos espaços por um, e converte para maiúsculas
                 df[col] = df[col].str.strip().str.replace(r'\s+', ' ', regex=True).str.upper()   
         return df
-    except FileNotFoundError:
-        st.error(f"Erro: O arquivo '{caminho_arquivo}' não foi encontrado. Certifique-se de que ele está na pasta correta.")
-        return None
     except Exception as e:
-        st.error(f"Ocorreu um erro ao carregar o arquivo: {e}")
+        st.error(f"Ocorreu um erro ao processar os dados do secret: {e}")
         return None
 
 # --- Interface Principal do Dashboard ---
 
 # Define o locale para português do Brasil para obter o nome do mês corretamente
-
-locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
-
-
+try:
+    locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
+except locale.Error:
+    st.warning("Locale 'pt_BR.UTF-8' não encontrado. O nome do mês pode aparecer em inglês.")
 
 # Calcula o mês anterior
 hoje = date.today()
@@ -53,12 +53,14 @@ mes_anterior_date = primeiro_dia_mes_atual - timedelta(days=1)
 mes_referencia = mes_anterior_date.strftime("%B/%Y").capitalize()
 
 st.title(f"SOC Maricá - Produção Mensal")
-st.title(f"{mes_referencia}")
-
-# --- Carregamento direto do arquivo ---
-# O arquivo 'base.xlsx' deve estar dentro de uma pasta chamada 'base de dados'.
-NOME_ARQUIVO = 'base de dados/base.xlsx'
-df_original = carregar_dados(NOME_ARQUIVO)
+st.title(f"{mes_referencia})")
+# --- Carregamento a partir dos Secrets do Streamlit ---
+df_original = None
+try:
+    # Tenta carregar os dados a partir do secret "EXCEL_BASE64"
+    df_original = carregar_dados_de_secret(st.secrets["EXCEL_BASE64"])
+except (KeyError, FileNotFoundError):
+    st.error("Secret 'EXCEL_BASE64' não encontrado. Por favor, configure os secrets nas configurações do seu app no Streamlit Cloud.")
 
 # A execução do script continua apenas se o dataframe for carregado com sucesso.
 if df_original is not None:
@@ -179,6 +181,3 @@ if df_original is not None:
             st.dataframe(total_geral_servico)
         else:
             st.warning("Nenhum dado para exibir ou colunas 'Serviço' e 'Resultado' não encontradas.")
-
-else:
-    st.info("⬅️ Para o dashboard funcionar, coloque o arquivo 'base.xlsx' dentro de uma pasta chamada 'base de dados'.")
