@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from datetime import datetime
 
 # --- Configuração da Página ---
 st.set_page_config(
@@ -10,7 +11,8 @@ st.set_page_config(
     layout="wide"
 )
 
-
+data_atual = datetime.now().strftime("%d-%m-%y %H:%M:%S")
+st.subheader(data_atual)
 # --- Carregamento e Limpeza dos Dados ---
 @st.cache_data
 def carregar_dados(arquivo_carregado):
