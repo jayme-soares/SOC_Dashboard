@@ -17,15 +17,15 @@ st.set_page_config(
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    timezone = pytz.timezone('America/Sao_Paulo')
-    data_atual = datetime.now(timezone).strftime("%d-%m-%y")
+    data_atual = datetime.now().strftime("%d-%m-%y")
     st.subheader(data_atual)
 with col2:
     st.empty()
 with col2:
     st.empty()
 with col3:
-    hora_atual = datetime.now().strftime("%H:%M")
+    timezone = pytz.timezone('America/Sao_Paulo')
+    hora_atual = datetime.now(timezone).strftime("%H:%M")
     st.subheader(hora_atual)
 st.markdown("----")
 # --- Carregamento e Limpeza dos Dados ---
