@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import date, timedelta
-import locale
 import gspread
 from google.oauth2.service_account import Credentials
 
@@ -22,7 +21,6 @@ def carregar_dados_de_gsheets(nome_planilha):
     """
     try:
         # Define os escopos de acesso da API
-        # CORREÇÃO: Adicionado o escopo do Google Drive para permitir encontrar a planilha pelo nome.
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive"
@@ -57,22 +55,31 @@ def carregar_dados_de_gsheets(nome_planilha):
 
 # --- Interface Principal do Dashboard ---
 
-# Define o locale para português do Brasil
-try:
-    locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
-except locale.Error:
-    st.warning("Locale 'pt_BR.UTF-8' não encontrado. O nome do mês pode aparecer em inglês.")
+# --- CORREÇÃO: Lógica para obter o nome do mês em português ---
+def obter_mes_em_portugues(data):
+    """
+    Retorna o nome do mês e o ano de uma data em português.
+    """
+    meses_pt = {
+        1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
+        5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+        9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
+    }
+    mes_numero = data.month
+    ano = data.year
+    nome_mes = meses_pt.get(mes_numero, "")
+    return f"{nome_mes}/{ano}"
 
 # Calcula o mês anterior
 hoje = date.today()
 primeiro_dia_mes_atual = hoje.replace(day=1)
 mes_anterior_date = primeiro_dia_mes_atual - timedelta(days=1)
-mes_referencia = mes_anterior_date.strftime("%B/%Y").capitalize()
+mes_referencia = obter_mes_em_portugues(mes_anterior_date)
 
 st.title(f"SOC Maricá - Produção Mensal (Mês Referência: {mes_referencia})")
 
 # --- Carregamento a partir do Google Sheets ---
-# IMPORTANTE: Este deve ser o nome exato da sua Planilha Google no Drive
+# O nome da Planilha Google geralmente não inclui a extensão .xlsx
 NOME_DA_PLANILHA_GOOGLE = "base" 
 df_original = carregar_dados_de_gsheets(NOME_DA_PLANILHA_GOOGLE)
 
