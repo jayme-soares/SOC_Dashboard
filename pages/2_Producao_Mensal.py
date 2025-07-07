@@ -76,7 +76,8 @@ primeiro_dia_mes_atual = hoje.replace(day=1)
 mes_anterior_date = primeiro_dia_mes_atual - timedelta(days=1)
 mes_referencia = obter_mes_em_portugues(mes_anterior_date)
 
-st.title(f"SOC Maricá - Produção Mensal (Mês Referência: {mes_referencia})")
+st.title(f"SOC Maricá - Produção Mensal")
+st.text(f"{mes_referencia}")
 
 # --- Carregamento a partir do Google Sheets ---
 # O nome da Planilha Google geralmente não inclui a extensão .xlsx
