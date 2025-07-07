@@ -1,5 +1,6 @@
 import streamlit as st
 from datetime import datetime
+import pytz
 
 # --- Configuração da Página ---
 st.set_page_config(
@@ -18,7 +19,8 @@ with col2:
 with col2:
     st.empty()
 with col3:
-    hora_atual = datetime.now().strftime("%H:%M")
+    timezone = pytz.timezone('America/Sao_Paulo')
+    hora_atual = datetime.now(timezone).strftime("%H:%M")
     st.subheader(hora_atual)
 st.markdown("----")
     

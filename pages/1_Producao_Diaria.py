@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
+import pytz
 
 # --- Configuração da Página ---
 st.set_page_config(
@@ -11,8 +12,22 @@ st.set_page_config(
     layout="wide"
 )
 
-data_atual = datetime.now().strftime("%d-%m-%y %H:%M:%S")
-st.subheader(data_atual)
+
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    timezone = pytz.timezone('America/Sao_Paulo')
+    data_atual = datetime.now(timezone).strftime("%d-%m-%y")
+    st.subheader(data_atual)
+with col2:
+    st.empty()
+with col2:
+    st.empty()
+with col3:
+    hora_atual = datetime.now().strftime("%H:%M")
+    st.subheader(hora_atual)
+st.markdown("----")
 # --- Carregamento e Limpeza dos Dados ---
 @st.cache_data
 def carregar_dados(arquivo_carregado):
