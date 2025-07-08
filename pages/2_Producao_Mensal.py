@@ -39,7 +39,7 @@ def carregar_dados_de_gsheets(nome_planilha):
         df = pd.DataFrame(sheet.get_all_records())
 
         # Padroniza as colunas de texto para maiúsculas e remove espaços extras
-        colunas_para_padronizar = ['Setor', ''Código Equipe'', 'Resultado', 'Serviço', 'Tipo Operação']
+        colunas_para_padronizar = ['Setor', 'Código Equipe', 'Resultado', 'Serviço', 'Tipo Operação']
         
         for col in colunas_para_padronizar:
             if col in df.columns:
@@ -93,7 +93,7 @@ if df_original is not None:
     setores_selecionados = st.sidebar.multiselect("Setor", setores_disponiveis, default=['TODOS'])
 
     # Filtro por Equipe
-    equipes_disponiveis = ['TODOS'] + df_original[''Código Equipe''].dropna().unique().tolist()
+    equipes_disponiveis = ['TODOS'] + df_original['Código Equipe'].dropna().unique().tolist()
     equipes_selecionadas = st.sidebar.multiselect("Equipe", equipes_disponiveis, default=['TODOS'])
 
     # Filtro por Resultado
@@ -105,7 +105,7 @@ if df_original is not None:
     if 'TODOS' not in setores_selecionados:
         df_filtrado = df_filtrado[df_filtrado['Setor'].isin(setores_selecionados)]
     if 'TODOS' not in equipes_selecionadas:
-        df_filtrado = df_filtrado[df_filtrado[''Código Equipe''].isin(equipes_selecionadas)]
+        df_filtrado = df_filtrado[df_filtrado['Código Equipe'].isin(equipes_selecionadas)]
     if 'TODOS' not in resultados_selecionados:
         df_filtrado = df_filtrado[df_filtrado['Resultado'].isin(resultados_selecionados)]
 
@@ -132,16 +132,16 @@ if df_original is not None:
     # Coluna 1: Gráfico de Produtividade por Equipe (com filtro individual)
     with col1:
         st.subheader("Produtividade por Equipe")
-        if not df_filtrado.empty and ''Código Equipe'' in df_filtrado.columns:
+        if not df_filtrado.empty and 'Código Equipe' in df_filtrado.columns:
             
-            lista_equipes_grafico = ['TODAS AS EQUIPES'] + df_filtrado[''Código Equipe''].dropna().unique().tolist()
+            lista_equipes_grafico = ['TODAS AS EQUIPES'] + df_filtrado['Código Equipe'].dropna().unique().tolist()
             equipe_selecionada_grafico = st.selectbox('Detalhar por Equipe:', options=lista_equipes_grafico, key='select_equipe_individual')
 
             df_para_grafico_equipe = df_filtrado
             if equipe_selecionada_grafico != 'TODAS AS EQUIPES':
-                df_para_grafico_equipe = df_filtrado[df_filtrado[''Código Equipe''] == equipe_selecionada_grafico]
+                df_para_grafico_equipe = df_filtrado[df_filtrado['Código Equipe'] == equipe_selecionada_grafico]
 
-            produtividade_equipe = df_para_grafico_equipe.groupby(''Código Equipe'')['Resultado'].value_counts().unstack().fillna(0)
+            produtividade_equipe = df_para_grafico_equipe.groupby('Código Equipe')['Resultado'].value_counts().unstack().fillna(0)
             fig = px.bar(produtividade_equipe, barmode='group', text_auto=True, color_discrete_map={'PRODUTIVO': 'royalblue', 'IMPRODUTIVO': 'darkorange'}, title="Produtividade por Equipe")
             fig.update_layout(xaxis_title=None, yaxis_title="Qtd. Atividades", legend_title="Resultado")
             st.plotly_chart(fig, use_container_width=True)
@@ -179,8 +179,8 @@ if df_original is not None:
     # Coluna 3: Tabela de Resumo por Equipe
     with col3:
         st.subheader("Resumo por Equipe")
-        if not df_filtrado.empty and all(col in df_filtrado.columns for col in [''Código Equipe'', 'Resultado']):
-            resumo_equipe = pd.pivot_table(df_filtrado, index=[''Código Equipe''], columns='Resultado', aggfunc='size', fill_value=0)
+        if not df_filtrado.empty and all(col in df_filtrado.columns for col in ['Código Equipe', 'Resultado']):
+            resumo_equipe = pd.pivot_table(df_filtrado, index=['Código Equipe'], columns='Resultado', aggfunc='size', fill_value=0)
             if 'PRODUTIVO' not in resumo_equipe: resumo_equipe['PRODUTIVO'] = 0
             if 'IMPRODUTIVO' not in resumo_equipe: resumo_equipe['IMPRODUTIVO'] = 0
             resumo_equipe['Total Geral'] = resumo_equipe.sum(axis=1)
