@@ -193,8 +193,8 @@ if df_original is not None:
     # Coluna 4: Tabela de Resumo por Serviço
     with col4:
         st.subheader("Resumo por Serviço")
-        if not df_filtrado.empty and all(col in df_filtrado.columns for col in ['Serviço', 'Resultado']):
-            resumo_servico = pd.pivot_table(df_filtrado, index=['Serviço'], columns='Resultado', aggfunc='size', fill_value=0)
+        if not df_filtrado.empty and all(col in df_filtrado.columns for col in ['Setor', 'Resultado']):
+            resumo_servico = pd.pivot_table(df_filtrado, index=['Setor'], columns='Resultado', aggfunc='size', fill_value=0)
             if 'PRODUTIVO' not in resumo_servico: resumo_servico['PRODUTIVO'] = 0
             if 'IMPRODUTIVO' not in resumo_servico: resumo_servico['IMPRODUTIVO'] = 0
             resumo_servico['Total Geral'] = resumo_servico.sum(axis=1)
@@ -202,4 +202,4 @@ if df_original is not None:
             st.dataframe(resumo_servico[['PRODUTIVO', 'IMPRODUTIVO', 'Total Geral']])
             st.dataframe(total_geral_servico)
         else:
-            st.warning("Nenhum dado para exibir ou colunas 'Serviço' e 'Resultado' não encontradas.")
+            st.warning("Nenhum dado para exibir ou colunas 'Setor' e 'Resultado' não encontradas.")
