@@ -39,22 +39,35 @@ def carregar_dados_de_gsheets(url_planilha):
 
         # --- Limpeza e Padronização dos Dados ---
         
-        # CORREÇÃO 1: Limpa os nomes das colunas para remover espaços em branco
+        # 1. Limpa os nomes das colunas para remover espaços em branco
         df.columns = [col.strip() for col in df.columns]
 
-        # Verifica se as colunas essenciais existem
+        # 2. CORREÇÃO: Renomeia colunas duplicadas para garantir unicidade
+        cols = []
+        counts = {}
+        for col in df.columns:
+            if col in counts:
+                counts[col] += 1
+                new_col_name = f"{col}_{counts[col]}"
+                cols.append(new_col_name)
+            else:
+                counts[col] = 0
+                cols.append(col)
+        df.columns = cols
+
+        # 3. Verifica se as colunas essenciais existem
         colunas_essenciais = ['Status', 'Erro', 'Agente', 'Data da analise']
         for col in colunas_essenciais:
             if col not in df.columns:
                 st.error(f"Erro Crítico: A coluna '{col}' não foi encontrada na sua planilha. Verifique se o nome na planilha é exatamente este.")
                 return None
 
-        # CORREÇÃO 2: Trata células vazias na coluna de data antes da conversão
+        # 4. Trata células vazias na coluna de data antes da conversão
         df['Data da analise'] = df['Data da analise'].replace('', pd.NaT)
         df['Data da analise'] = pd.to_datetime(df['Data da analise'], errors='coerce')
         df.dropna(subset=['Data da analise'], inplace=True) # Remove linhas onde a data não pôde ser convertida
 
-        # Padroniza colunas de texto
+        # 5. Padroniza colunas de texto
         colunas_para_padronizar = ['Status', 'Erro', 'Agente']
         for col in colunas_para_padronizar:
             df[col] = df[col].astype(str).str.strip().str.upper()
