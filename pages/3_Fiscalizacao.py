@@ -28,7 +28,7 @@ def carregar_dados_de_gsheets(url_planilha):
         # Abre a planilha pela URL e pega a primeira aba
         sheet = client.open_by_url(url_planilha).sheet1
         
-        # CORREÇÃO: Lê todos os valores e cria o DataFrame com o Pandas para lidar com cabeçalhos duplicados.
+        # Lê todos os valores e cria o DataFrame com o Pandas para lidar com cabeçalhos duplicados.
         all_values = sheet.get_all_values()
         if not all_values:
             st.error("A planilha parece estar vazia.")
@@ -38,8 +38,8 @@ def carregar_dados_de_gsheets(url_planilha):
 
         # --- Limpeza e Padronização dos Dados ---
         
-        # Garante que colunas importantes existam para evitar erros
-        colunas_essenciais = ['Status da OS', 'Tipo de Erro', 'Eletricista', 'Data de baixa']
+        # CORREÇÃO: Atualizado o nome da coluna de status
+        colunas_essenciais = ['Status da Fiscalização', 'Tipo de Erro', 'Eletricista', 'Data de baixa']
         for col in colunas_essenciais:
             if col not in df.columns:
                 st.error(f"Erro Crítico: A coluna '{col}' não foi encontrada na sua planilha. O dashboard não pode continuar.")
@@ -50,7 +50,7 @@ def carregar_dados_de_gsheets(url_planilha):
         df.dropna(subset=['Data de baixa'], inplace=True) # Remove linhas onde a data não pôde ser convertida
 
         # Padroniza colunas de texto
-        colunas_para_padronizar = ['Status da OS', 'Tipo de Erro', 'Eletricista']
+        colunas_para_padronizar = ['Status da Fiscalização', 'Tipo de Erro', 'Eletricista']
         for col in colunas_para_padronizar:
             df[col] = df[col].astype(str).str.strip().str.upper()
         
@@ -86,8 +86,8 @@ if df_original is not None:
     eletricistas_disponiveis = ['TODOS'] + sorted(df_original['Eletricista'].dropna().unique().tolist())
     eletricista_selecionado = st.sidebar.selectbox("Eletricista", eletricistas_disponiveis)
 
-    # Filtro por Status da OS
-    status_disponiveis = ['TODOS'] + sorted(df_original['Status da OS'].dropna().unique().tolist())
+    # CORREÇÃO: Atualizado o nome da coluna e o label do filtro
+    status_disponiveis = ['TODOS'] + sorted(df_original['Status da Fiscalização'].dropna().unique().tolist())
     status_selecionado = st.sidebar.selectbox("Status da Fiscalização", status_disponiveis)
 
     # --- Aplicação dos Filtros ---
@@ -97,13 +97,15 @@ if df_original is not None:
     ]
     if eletricista_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Eletricista'] == eletricista_selecionado]
+    # CORREÇÃO: Atualizado o nome da coluna no filtro
     if status_selecionado != 'TODOS':
-        df_filtrado = df_filtrado[df_filtrado['Status da OS'] == status_selecionado]
+        df_filtrado = df_filtrado[df_filtrado['Status da Fiscalização'] == status_selecionado]
 
     # --- KPIs ---
     st.markdown("### Resumo do Período")
     total_fiscalizado = len(df_filtrado)
-    total_erros = df_filtrado[df_filtrado['Status da OS'] == 'ERRO'].shape[0]
+    # CORREÇÃO: Atualizado o valor para contar erros (IMPROCEDENTE)
+    total_erros = df_filtrado[df_filtrado['Status da Fiscalização'] == 'IMPROCEDENTE'].shape[0]
     percentual_erro = (total_erros / total_fiscalizado * 100) if total_fiscalizado > 0 else 0
 
     kpi1, kpi2, kpi3 = st.columns(3)
@@ -119,15 +121,17 @@ if df_original is not None:
     with col1:
         st.subheader("Status das Fiscalizações")
         if not df_filtrado.empty:
-            status_counts = df_filtrado['Status da OS'].value_counts()
+            # CORREÇÃO: Atualizado o nome da coluna
+            status_counts = df_filtrado['Status da Fiscalização'].value_counts()
             fig_donut = px.pie(
                 status_counts, 
                 values=status_counts.values, 
                 names=status_counts.index, 
-                title="Proporção OK vs. Erro",
+                title="Proporção Procedente vs. Improcedente",
                 hole=0.4,
                 color=status_counts.index,
-                color_discrete_map={'OK':'royalblue', 'ERRO':'darkorange'}
+                # CORREÇÃO: Atualizado o mapeamento de cores
+                color_discrete_map={'PROCEDENTE':'royalblue', 'IMPROCEDENTE':'darkorange'}
             )
             fig_donut.update_traces(textinfo='percent+label')
             st.plotly_chart(fig_donut, use_container_width=True)
@@ -136,7 +140,8 @@ if df_original is not None:
 
     with col2:
         st.subheader("Tipos de Erro Encontrados")
-        df_erros = df_filtrado[df_filtrado['Status da OS'] == 'ERRO']
+        # CORREÇÃO: Atualizado o nome da coluna e o valor
+        df_erros = df_filtrado[df_filtrado['Status da Fiscalização'] == 'IMPROCEDENTE']
         if not df_erros.empty:
             erros_counts = df_erros['Tipo de Erro'].value_counts()
             fig_bar = px.bar(
