@@ -38,8 +38,8 @@ def carregar_dados_de_gsheets(url_planilha):
 
         # --- Limpeza e Padronização dos Dados ---
         
-        # CORREÇÃO FINAL: Atualizado o nome da coluna para "Erro"
-        colunas_essenciais = ['Status', 'Erro', 'Eletricista', 'Data de baixa']
+        # CORREÇÃO FINAL: Atualizado o nome da coluna para "Agente"
+        colunas_essenciais = ['Status', 'Erro', 'Agente', 'Data de baixa']
         for col in colunas_essenciais:
             if col not in df.columns:
                 st.error(f"Erro Crítico: A coluna '{col}' não foi encontrada na sua planilha. Verifique se o nome na planilha é exatamente este.")
@@ -50,7 +50,7 @@ def carregar_dados_de_gsheets(url_planilha):
         df.dropna(subset=['Data de baixa'], inplace=True) # Remove linhas onde a data não pôde ser convertida
 
         # Padroniza colunas de texto
-        colunas_para_padronizar = ['Status', 'Erro', 'Eletricista']
+        colunas_para_padronizar = ['Status', 'Erro', 'Agente']
         for col in colunas_para_padronizar:
             df[col] = df[col].astype(str).str.strip().str.upper()
         
@@ -82,9 +82,9 @@ if df_original is not None:
     data_inicio = st.sidebar.date_input('Data de Início', data_min, min_value=data_min, max_value=data_max)
     data_fim = st.sidebar.date_input('Data de Fim', data_max, min_value=data_min, max_value=data_max)
 
-    # Filtro por Eletricista
-    eletricistas_disponiveis = ['TODOS'] + sorted(df_original['Eletricista'].dropna().unique().tolist())
-    eletricista_selecionado = st.sidebar.selectbox("Eletricista", eletricistas_disponiveis)
+    # Filtro por Agente
+    agentes_disponiveis = ['TODOS'] + sorted(df_original['Agente'].dropna().unique().tolist())
+    agente_selecionado = st.sidebar.selectbox("Agente", agentes_disponiveis)
 
     # Filtro por Status
     status_disponiveis = ['TODOS'] + sorted(df_original['Status'].dropna().unique().tolist())
@@ -95,8 +95,8 @@ if df_original is not None:
         (df_original['Data de baixa'].dt.date >= data_inicio) &
         (df_original['Data de baixa'].dt.date <= data_fim)
     ]
-    if eletricista_selecionado != 'TODOS':
-        df_filtrado = df_filtrado[df_filtrado['Eletricista'] == eletricista_selecionado]
+    if agente_selecionado != 'TODOS':
+        df_filtrado = df_filtrado[df_filtrado['Agente'] == agente_selecionado]
     if status_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Status'] == status_selecionado]
 
@@ -138,7 +138,6 @@ if df_original is not None:
         st.subheader("Tipos de Erro Encontrados")
         df_erros = df_filtrado[df_filtrado['Status'] == 'IMPROCEDENTE']
         if not df_erros.empty:
-            # CORREÇÃO FINAL: Usando a coluna "Erro"
             erros_counts = df_erros['Erro'].value_counts()
             fig_bar = px.bar(
                 erros_counts,
