@@ -38,11 +38,11 @@ def carregar_dados_de_gsheets(url_planilha):
 
         # --- Limpeza e Padronização dos Dados ---
         
-        # CORREÇÃO: Atualizado o nome da coluna de status para "Status"
-        colunas_essenciais = ['Status', 'Tipo de Erro', 'Eletricista', 'Data de baixa']
+        # CORREÇÃO FINAL: Atualizado o nome da coluna para "Erro"
+        colunas_essenciais = ['Status', 'Erro', 'Eletricista', 'Data de baixa']
         for col in colunas_essenciais:
             if col not in df.columns:
-                st.error(f"Erro Crítico: A coluna '{col}' não foi encontrada na sua planilha. O dashboard não pode continuar.")
+                st.error(f"Erro Crítico: A coluna '{col}' não foi encontrada na sua planilha. Verifique se o nome na planilha é exatamente este.")
                 return None
 
         # Converte a coluna de data, tratando erros
@@ -50,7 +50,7 @@ def carregar_dados_de_gsheets(url_planilha):
         df.dropna(subset=['Data de baixa'], inplace=True) # Remove linhas onde a data não pôde ser convertida
 
         # Padroniza colunas de texto
-        colunas_para_padronizar = ['Status', 'Tipo de Erro', 'Eletricista']
+        colunas_para_padronizar = ['Status', 'Erro', 'Eletricista']
         for col in colunas_para_padronizar:
             df[col] = df[col].astype(str).str.strip().str.upper()
         
@@ -86,7 +86,7 @@ if df_original is not None:
     eletricistas_disponiveis = ['TODOS'] + sorted(df_original['Eletricista'].dropna().unique().tolist())
     eletricista_selecionado = st.sidebar.selectbox("Eletricista", eletricistas_disponiveis)
 
-    # CORREÇÃO: Atualizado o nome da coluna e o label do filtro para "Status"
+    # Filtro por Status
     status_disponiveis = ['TODOS'] + sorted(df_original['Status'].dropna().unique().tolist())
     status_selecionado = st.sidebar.selectbox("Status", status_disponiveis)
 
@@ -97,14 +97,12 @@ if df_original is not None:
     ]
     if eletricista_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Eletricista'] == eletricista_selecionado]
-    # CORREÇÃO: Atualizado o nome da coluna no filtro
     if status_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Status'] == status_selecionado]
 
     # --- KPIs ---
     st.markdown("### Resumo do Período")
     total_fiscalizado = len(df_filtrado)
-    # CORREÇÃO: Atualizado o valor para contar erros (IMPROCEDENTE) na coluna "Status"
     total_erros = df_filtrado[df_filtrado['Status'] == 'IMPROCEDENTE'].shape[0]
     percentual_erro = (total_erros / total_fiscalizado * 100) if total_fiscalizado > 0 else 0
 
@@ -121,7 +119,6 @@ if df_original is not None:
     with col1:
         st.subheader("Status das Fiscalizações")
         if not df_filtrado.empty:
-            # CORREÇÃO: Atualizado o nome da coluna
             status_counts = df_filtrado['Status'].value_counts()
             fig_donut = px.pie(
                 status_counts, 
@@ -130,7 +127,6 @@ if df_original is not None:
                 title="Proporção Procedente vs. Improcedente",
                 hole=0.4,
                 color=status_counts.index,
-                # CORREÇÃO: Atualizado o mapeamento de cores
                 color_discrete_map={'PROCEDENTE':'royalblue', 'IMPROCEDENTE':'darkorange'}
             )
             fig_donut.update_traces(textinfo='percent+label')
@@ -140,10 +136,10 @@ if df_original is not None:
 
     with col2:
         st.subheader("Tipos de Erro Encontrados")
-        # CORREÇÃO: Atualizado o nome da coluna e o valor
         df_erros = df_filtrado[df_filtrado['Status'] == 'IMPROCEDENTE']
         if not df_erros.empty:
-            erros_counts = df_erros['Tipo de Erro'].value_counts()
+            # CORREÇÃO FINAL: Usando a coluna "Erro"
+            erros_counts = df_erros['Erro'].value_counts()
             fig_bar = px.bar(
                 erros_counts,
                 x=erros_counts.index,
@@ -160,5 +156,6 @@ if df_original is not None:
     # --- Tabela de Dados Detalhada ---
     with st.expander("Ver dados detalhados da fiscalização"):
         st.dataframe(df_filtrado)
+
 else:
     st.warning("Aguardando dados da planilha... Verifique a URL e as configurações de partilha.")
