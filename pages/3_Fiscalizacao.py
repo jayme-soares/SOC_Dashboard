@@ -38,16 +38,16 @@ def carregar_dados_de_gsheets(url_planilha):
 
         # --- Limpeza e Padronização dos Dados ---
         
-        # CORREÇÃO FINAL: Atualizado o nome da coluna para "Agente"
-        colunas_essenciais = ['Status', 'Erro', 'Agente', 'Data de baixa']
+        # CORREÇÃO FINAL: Atualizado o nome da coluna de data para "Data de analise"
+        colunas_essenciais = ['Status', 'Erro', 'Agente', 'Data de analise']
         for col in colunas_essenciais:
             if col not in df.columns:
                 st.error(f"Erro Crítico: A coluna '{col}' não foi encontrada na sua planilha. Verifique se o nome na planilha é exatamente este.")
                 return None
 
         # Converte a coluna de data, tratando erros
-        df['Data de baixa'] = pd.to_datetime(df['Data de baixa'], errors='coerce')
-        df.dropna(subset=['Data de baixa'], inplace=True) # Remove linhas onde a data não pôde ser convertida
+        df['Data de analise'] = pd.to_datetime(df['Data de analise'], errors='coerce')
+        df.dropna(subset=['Data de analise'], inplace=True) # Remove linhas onde a data não pôde ser convertida
 
         # Padroniza colunas de texto
         colunas_para_padronizar = ['Status', 'Erro', 'Agente']
@@ -77,8 +77,8 @@ if df_original is not None:
     st.sidebar.header("Filtros")
 
     # Filtro de Data
-    data_min = df_original['Data de baixa'].min().date()
-    data_max = df_original['Data de baixa'].max().date()
+    data_min = df_original['Data de analise'].min().date()
+    data_max = df_original['Data de analise'].max().date()
     data_inicio = st.sidebar.date_input('Data de Início', data_min, min_value=data_min, max_value=data_max)
     data_fim = st.sidebar.date_input('Data de Fim', data_max, min_value=data_min, max_value=data_max)
 
@@ -92,8 +92,8 @@ if df_original is not None:
 
     # --- Aplicação dos Filtros ---
     df_filtrado = df_original[
-        (df_original['Data de baixa'].dt.date >= data_inicio) &
-        (df_original['Data de baixa'].dt.date <= data_fim)
+        (df_original['Data de analise'].dt.date >= data_inicio) &
+        (df_original['Data de analise'].dt.date <= data_fim)
     ]
     if agente_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Agente'] == agente_selecionado]
