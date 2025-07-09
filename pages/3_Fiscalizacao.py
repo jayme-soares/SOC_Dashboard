@@ -107,6 +107,9 @@ if df_original is not None:
     # Filtro por Status
     status_disponiveis = ['TODOS'] + sorted(df_original['Status'].dropna().unique().tolist())
     status_selecionado = st.sidebar.selectbox("Status", status_disponiveis)
+    
+    responsaveis_disponiveis = ['TODOS'] + sorted(df_original['Responsável'].dropna().unique().tolist())
+    responsavel_selecionado = st.sidebar.selectbox("Responsável", status_disponiveis)
 
     # --- Aplicação dos Filtros ---
     df_filtrado = df_original[
