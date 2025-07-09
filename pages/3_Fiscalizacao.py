@@ -27,7 +27,14 @@ def carregar_dados_de_gsheets(url_planilha):
         
         # Abre a planilha pela URL e pega a primeira aba
         sheet = client.open_by_url(url_planilha).sheet1
-        df = pd.DataFrame(sheet.get_all_records())
+        
+        # CORREÇÃO: Lê todos os valores e cria o DataFrame com o Pandas para lidar com cabeçalhos duplicados.
+        all_values = sheet.get_all_values()
+        if not all_values:
+            st.error("A planilha parece estar vazia.")
+            return None
+        df = pd.DataFrame(all_values[1:], columns=all_values[0])
+
 
         # --- Limpeza e Padronização dos Dados ---
         
