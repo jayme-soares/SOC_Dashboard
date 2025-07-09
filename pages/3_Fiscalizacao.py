@@ -33,19 +33,24 @@ def carregar_dados_de_gsheets(url_planilha):
         if not all_values:
             st.error("A planilha parece estar vazia.")
             return None
+        
+        # Cria o DataFrame
         df = pd.DataFrame(all_values[1:], columns=all_values[0])
-
 
         # --- Limpeza e Padronização dos Dados ---
         
-        # CORREÇÃO FINAL: Atualizado o nome da coluna de data para "Data da analise"
+        # CORREÇÃO 1: Limpa os nomes das colunas para remover espaços em branco
+        df.columns = [col.strip() for col in df.columns]
+
+        # Verifica se as colunas essenciais existem
         colunas_essenciais = ['Status', 'Erro', 'Agente', 'Data da analise']
         for col in colunas_essenciais:
             if col not in df.columns:
                 st.error(f"Erro Crítico: A coluna '{col}' não foi encontrada na sua planilha. Verifique se o nome na planilha é exatamente este.")
                 return None
 
-        # Converte a coluna de data, tratando erros
+        # CORREÇÃO 2: Trata células vazias na coluna de data antes da conversão
+        df['Data da analise'] = df['Data da analise'].replace('', pd.NaT)
         df['Data da analise'] = pd.to_datetime(df['Data da analise'], errors='coerce')
         df.dropna(subset=['Data da analise'], inplace=True) # Remove linhas onde a data não pôde ser convertida
 
