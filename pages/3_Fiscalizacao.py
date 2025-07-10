@@ -180,6 +180,26 @@ if df_original is not None:
         else:
             st.info("Nenhum erro encontrado no período selecionado.")
 
+    col3,col4 = st.columns(2)
+    with col3:
+        st.subheader("Pendencias Plano de Ação")
+        if not df_filtrado.empty:
+            status_acao = df_filtrado['Status Plano Ação'].value_counts()
+            fig_bar2 = px.bar(
+                status_acao,
+                x=status_acao.index,
+                y=status_acao.values,
+                title="Pendências Status Plano de Ação",
+                text=status_acao.values,
+                labels={'x': 'Status do Plano de Ação', 'y': 'Quantidade'},
+                color_discrete_sequence=['green', 'royalyellow']
+            )
+            fig_bar2.update_traces(textposition='outside')
+            st.plotly_chart(fig_bar2, use_container_width=True)
+        else:
+            st.warning("Nenhum dado para exibir com os filtros atuais.")
+            
+            
     # --- Tabela de Dados Detalhada ---
     with st.expander("Ver dados detalhados da fiscalização"):
         st.dataframe(df_filtrado)
