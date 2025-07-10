@@ -56,7 +56,7 @@ def carregar_dados_de_gsheets(url_planilha):
         df.columns = cols
 
         # 3. Verifica se as colunas essenciais existem
-        colunas_essenciais = ['Status', 'Erro', 'Agente', 'Data da analise']
+        colunas_essenciais = ['Status', 'Erro', 'Agente', 'Data da analise', 'Responsável']
         for col in colunas_essenciais:
             if col not in df.columns:
                 st.error(f"Erro Crítico: A coluna '{col}' não foi encontrada na sua planilha. Verifique se o nome na planilha é exatamente este.")
@@ -68,7 +68,7 @@ def carregar_dados_de_gsheets(url_planilha):
         df.dropna(subset=['Data da analise'], inplace=True) # Remove linhas onde a data não pôde ser convertida
 
         # 5. Padroniza colunas de texto
-        colunas_para_padronizar = ['Status', 'Erro', 'Agente']
+        colunas_para_padronizar = ['Status', 'Erro', 'Agente', 'Responsável']
         for col in colunas_para_padronizar:
             df[col] = df[col].astype(str).str.strip().str.upper()
         
