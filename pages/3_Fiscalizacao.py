@@ -183,22 +183,31 @@ if df_original is not None:
     col3,col4 = st.columns(2)
     
     with col3:
-        st.subheader("Pendencias Plano de Ação")
+        st.subheader("Pendências Plano de Ação")
         if not df_filtrado.empty:
-            status_acao = df_filtrado['Status Plano Ação'].value_counts()
-            fig_bar2 = px.bar(
-                status_acao,
-                x=status_acao.index,
-                y=status_acao.values,
-                title="Pendências Status Plano de Ação",
-                text=status_acao.values,
-                labels={'x': 'Status Plano de Ação', 'y': 'Quantidade'},
-                color_discrete_map={'REALIZADO':'blue', 'PENDENTE':'orange'}
-            )
-            fig_bar2.update_traces(textposition='outside')
-            st.plotly_chart(fig_bar2, use_container_width=True)
+            # Filtra apenas os status que não estão em branco ou com valores nulos
+            df_plano_acao = df_filtrado[df_filtrado['Status Plano Ação'].str.strip() != '']
+            
+            if not df_plano_acao.empty:
+                status_acao = df_plano_acao['Status Plano Ação'].value_counts()
+                fig_bar2 = px.bar(
+                    status_acao,
+                    x=status_acao.index,
+                    y=status_acao.values,
+                    title="Pendências por Status do Plano de Ação",
+                    text=status_acao.values,
+                    labels={'x': 'Status Plano de Ação', 'y': 'Quantidade'},
+                    color=status_acao.index,
+                    color_discrete_map={'REALIZADO':'royalblue', 'PENDENTE':'darkorange'}
+                )
+                fig_bar2.update_layout(showlegend=False)
+                fig_bar2.update_traces(textposition='outside')
+                st.plotly_chart(fig_bar2, use_container_width=True)
+            else:
+                st.info("Nenhuma pendência de plano de ação para os filtros selecionados.")
         else:
             st.warning("Nenhum dado para exibir com os filtros atuais.")
+
             
             
     # --- Tabela de Dados Detalhada ---
