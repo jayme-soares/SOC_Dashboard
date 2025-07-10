@@ -193,7 +193,7 @@ if df_original is not None:
                 title="Pendências Status Plano de Ação",
                 text=status_acao.values,
                 labels={'x': 'Status Plano de Ação', 'y': 'Quantidade'},
-                # color_discrete_map={'REALIZADO':'blue', 'PENDENTE':''}
+                color_discrete_map={'REALIZADO':'blue', 'PENDENTE':'orange'}
             )
             fig_bar2.update_traces(textposition='outside')
             st.plotly_chart(fig_bar2, use_container_width=True)
