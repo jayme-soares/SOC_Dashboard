@@ -121,7 +121,8 @@ if df_original is not None:
         df_filtrado = df_filtrado[df_filtrado['Agente'] == agente_selecionado]
     if status_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Status'] == status_selecionado]
-
+    if responsavel_selecionado != 'TODOS':
+        df_filtrado = df_filtrado[df_filtrado['Responsável'] == responsavel_selecionado]
     # --- KPIs ---
     st.markdown("### Resumo do Período")
     total_fiscalizado = len(df_filtrado)
