@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 import pytz
+from PIL import Image
 
 # --- Configuração da Página ---
 st.set_page_config(
@@ -12,6 +13,8 @@ st.set_page_config(
     layout="wide"
 )
 
+image = Image.open("imagens/ceneged_cover.jpeg")
+st.image(image, use_container_width =True)
 
 
 col1, col2, col3 = st.columns(3)

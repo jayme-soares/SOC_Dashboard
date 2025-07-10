@@ -9,6 +9,8 @@ st.set_page_config(
     page_icon="📊",
     layout="wide"
 )
+image = Image.open("imagens/ceneged_cover.jpeg")
+st.image(image, use_container_width =True)
 
 col1, col2, col3 = st.columns(3)
 
@@ -27,5 +29,4 @@ st.markdown("----")
     
 st.title("Seja bem-vindo(a)!")
 st.subheader("Use o menu ao lado para navegar...")
-image = Image.open("imagens/ceneged-banner.jpg")
-st.image(image, caption="CENEGED", use_container_width =True)
+

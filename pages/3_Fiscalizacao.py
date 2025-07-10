@@ -5,6 +5,7 @@ import plotly.express as px
 from datetime import date, timedelta
 import gspread
 from google.oauth2.service_account import Credentials
+from PIL import Image
 
 # --- Configuração da Página ---
 st.set_page_config(
@@ -12,6 +13,10 @@ st.set_page_config(
     page_icon="🔍",
     layout="wide"
 )
+
+image = Image.open("imagens/ceneged_cover.jpeg")
+st.image(image, use_container_width =True)
+
 
 # --- Carregamento e Limpeza dos Dados a partir do Google Sheets ---
 @st.cache_data
