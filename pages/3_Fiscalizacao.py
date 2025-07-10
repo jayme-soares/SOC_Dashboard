@@ -95,8 +95,8 @@ if df_original is not None:
     st.sidebar.header("Filtros")
 
     # Filtro de Data
-    data_min = df_original['Data da analise'].min().date()
-    data_max = df_original['Data da analise'].max().date()
+    data_min = df_original['Data da analise'].min().date().strftime("%d-%m-%Y")
+    data_max = df_original['Data da analise'].max().date().strftime("%d-%m-%Y")
     data_inicio = st.sidebar.date_input('Data de Início', data_min, min_value=data_min, max_value=data_max)
     data_fim = st.sidebar.date_input('Data de Fim', data_max, min_value=data_min, max_value=data_max)
 
