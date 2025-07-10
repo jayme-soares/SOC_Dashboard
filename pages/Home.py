@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import datetime
 import pytz
+from PIL import Image
 
 # --- Configuração da Página ---
 st.set_page_config(
@@ -26,3 +27,5 @@ st.markdown("----")
     
 st.title("Seja bem-vindo(a)!")
 st.subheader("Use o menu ao lado para navegar...")
+image = Image.open("imagens/ceneged-banner.jpg")
+st.image(image, caption="CENEGED", use_container_width =True)
