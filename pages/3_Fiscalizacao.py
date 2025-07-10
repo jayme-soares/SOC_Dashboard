@@ -81,7 +81,7 @@ def carregar_dados_de_gsheets(url_planilha):
         return None
 
 # --- Interface Principal do Dashboard ---
-st.title("🔍 Dashboard de Fiscalização de Serviços")
+st.title("🔍 Dashboard Fiscalização")
 
 # --- Carregamento dos Dados ---
 # IMPORTANTE: Cole aqui a URL da sua Planilha Google de fiscalização
@@ -108,8 +108,9 @@ if df_original is not None:
     status_disponiveis = ['TODOS'] + sorted(df_original['Status'].dropna().unique().tolist())
     status_selecionado = st.sidebar.selectbox("Status", status_disponiveis)
     
+    # Filtro por Responsável
     responsaveis_disponiveis = ['TODOS'] + sorted(df_original['Responsável'].dropna().unique().tolist())
-    responsavel_selecionado = st.sidebar.selectbox("Responsável", status_disponiveis)
+    responsavel_selecionado = st.sidebar.selectbox("Responsável", responsaveis_disponiveis)
 
     # --- Aplicação dos Filtros ---
     df_filtrado = df_original[
