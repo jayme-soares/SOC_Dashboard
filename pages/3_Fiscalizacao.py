@@ -61,7 +61,7 @@ def carregar_dados_de_gsheets(url_planilha):
         df.columns = cols
 
         # 3. Verifica se as colunas essenciais existem
-        colunas_essenciais = ['Status', 'Erro', 'Agente', 'Data da analise', 'Responsável']
+        colunas_essenciais = ['Status', 'Erro', 'Agente', 'Data da analise', 'Responsável', 'Status Plano Ação']
         for col in colunas_essenciais:
             if col not in df.columns:
                 st.error(f"Erro Crítico: A coluna '{col}' não foi encontrada na sua planilha. Verifique se o nome na planilha é exatamente este.")
@@ -73,7 +73,7 @@ def carregar_dados_de_gsheets(url_planilha):
         df.dropna(subset=['Data da analise'], inplace=True) # Remove linhas onde a data não pôde ser convertida
 
         # 5. Padroniza colunas de texto
-        colunas_para_padronizar = ['Status', 'Erro', 'Agente', 'Responsável']
+        colunas_para_padronizar = ['Status', 'Erro', 'Agente', 'Responsável', 'Status Plano Ação']
         for col in colunas_para_padronizar:
             df[col] = df[col].astype(str).str.strip().str.upper()
         
@@ -181,6 +181,7 @@ if df_original is not None:
             st.info("Nenhum erro encontrado no período selecionado.")
 
     col3,col4 = st.columns(2)
+    
     with col3:
         st.subheader("Pendencias Plano de Ação")
         if not df_filtrado.empty:
@@ -191,8 +192,8 @@ if df_original is not None:
                 y=status_acao.values,
                 title="Pendências Status Plano de Ação",
                 text=status_acao.values,
-                labels={'x': 'Status do Plano de Ação', 'y': 'Quantidade'},
-                color_discrete_map={'REALIZADO':'green', 'PENDENTE':'yellow'}
+                labels={'x': 'Status Plano de Ação', 'y': 'Quantidade'},
+                # color_discrete_map={'REALIZADO':'blue', 'PENDENTE':''}
             )
             fig_bar2.update_traces(textposition='outside')
             st.plotly_chart(fig_bar2, use_container_width=True)
