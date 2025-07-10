@@ -183,13 +183,12 @@ if df_original is not None:
     col3,col4 = st.columns(2)
     
     with col3:
-        st.subheader("Pendências Plano de Ação")
+        st.subheader("Pendências Plano de Ação (Geral)")
         
-        # --- CORREÇÃO: Cria um DataFrame separado para este gráfico, ignorando o filtro de 'Status' ---
-        df_plano_acao_filtrado = df_original[
-            (df_original['Data da analise'].dt.date >= data_inicio) &
-            (df_original['Data da analise'].dt.date <= data_fim)
-        ]
+        # --- CORREÇÃO: Cria um DataFrame para o Plano de Ação que IGNORA os filtros de data e status ---
+        df_plano_acao_filtrado = df_original.copy() # Começa com todos os dados da planilha original
+        
+        # Aplica apenas os filtros de Agente e Responsável
         if agente_selecionado != 'TODOS':
             df_plano_acao_filtrado = df_plano_acao_filtrado[df_plano_acao_filtrado['Agente'] == agente_selecionado]
         if responsavel_selecionado != 'TODOS':
@@ -197,7 +196,7 @@ if df_original is not None:
 
 
         if not df_plano_acao_filtrado.empty:
-            # Filtra apenas os status que não estão em branco ou com valores nulos
+            # Filtra apenas as linhas onde 'Status Plano Ação' não está em branco
             df_plano_acao = df_plano_acao_filtrado[df_plano_acao_filtrado['Status Plano Ação'].str.strip() != '']
             
             if not df_plano_acao.empty:
