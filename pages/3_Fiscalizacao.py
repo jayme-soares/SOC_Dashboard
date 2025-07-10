@@ -47,7 +47,7 @@ def carregar_dados_de_gsheets(url_planilha):
         # 1. Limpa os nomes das colunas para remover espaços em branco
         df.columns = [col.strip() for col in df.columns]
 
-        # 2. CORREÇÃO: Renomeia colunas duplicadas para garantir unicidade
+        # 2. Renomeia colunas duplicadas para garantir unicidade
         cols = []
         counts = {}
         for col in df.columns:
@@ -184,9 +184,21 @@ if df_original is not None:
     
     with col3:
         st.subheader("Pendências Plano de Ação")
-        if not df_filtrado.empty:
+        
+        # --- CORREÇÃO: Cria um DataFrame separado para este gráfico, ignorando o filtro de 'Status' ---
+        df_plano_acao_filtrado = df_original[
+            (df_original['Data da analise'].dt.date >= data_inicio) &
+            (df_original['Data da analise'].dt.date <= data_fim)
+        ]
+        if agente_selecionado != 'TODOS':
+            df_plano_acao_filtrado = df_plano_acao_filtrado[df_plano_acao_filtrado['Agente'] == agente_selecionado]
+        if responsavel_selecionado != 'TODOS':
+            df_plano_acao_filtrado = df_plano_acao_filtrado[df_plano_acao_filtrado['Responsável'] == responsavel_selecionado]
+
+
+        if not df_plano_acao_filtrado.empty:
             # Filtra apenas os status que não estão em branco ou com valores nulos
-            df_plano_acao = df_filtrado[df_filtrado['Status Plano Ação'].str.strip() != '']
+            df_plano_acao = df_plano_acao_filtrado[df_plano_acao_filtrado['Status Plano Ação'].str.strip() != '']
             
             if not df_plano_acao.empty:
                 status_acao = df_plano_acao['Status Plano Ação'].value_counts()
