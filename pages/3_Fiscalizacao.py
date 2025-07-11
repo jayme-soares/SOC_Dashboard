@@ -205,6 +205,8 @@ if df_original is not None:
             
             if not df_plano_acao.empty:
                 status_acao = df_plano_acao['Status Plano Ação'].value_counts()
+                
+                # ALTERAÇÃO: Novas cores e ajuste do eixo Y
                 fig_bar2 = px.bar(
                     status_acao,
                     x=status_acao.index,
@@ -213,9 +215,13 @@ if df_original is not None:
                     text=status_acao.values,
                     labels={'x': 'Status Plano de Ação', 'y': 'Quantidade'},
                     color=status_acao.index,
-                    color_discrete_map={'REALIZADO':'royalblue', 'PENDENTE':'darkorange'}
+                    color_discrete_map={'REALIZADO':'#90ee90', 'PENDENTE':'#f08080'} # Verde e Vermelho suaves
                 )
-                fig_bar2.update_layout(showlegend=False)
+                # Adiciona uma margem ao topo do eixo Y para garantir que o rótulo não seja cortado
+                fig_bar2.update_layout(
+                    showlegend=False,
+                    yaxis_range=[0, status_acao.values.max() * 1.15]
+                )
                 fig_bar2.update_traces(textposition='outside')
                 st.plotly_chart(fig_bar2, use_container_width=True)
             else:
