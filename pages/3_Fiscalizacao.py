@@ -67,12 +67,7 @@ def carregar_dados_de_gsheets(url_planilha):
                 st.error(f"Erro Crítico: A coluna '{col}' não foi encontrada na sua planilha. Verifique se o nome na planilha é exatamente este.")
                 return None
 
-        # 4. Trata células vazias na coluna de data antes da conversão
-        df['Data da analise'] = df['Data da analise'].replace('', pd.NaT)
-        df['Data da analise'] = pd.to_datetime(df['Data da analise'], errors='coerce')
-        df.dropna(subset=['Data da analise'], inplace=True) # Remove linhas onde a data não pôde ser convertida
-
-        # 5. Padroniza colunas de texto
+        # 4. Padroniza colunas de texto (sem converter data ainda)
         colunas_para_padronizar = ['Status', 'Erro', 'Agente', 'Responsável', 'Status Plano Ação']
         for col in colunas_para_padronizar:
             df[col] = df[col].astype(str).str.strip().str.upper()
@@ -96,12 +91,18 @@ df_original = carregar_dados_de_gsheets(URL_DA_PLANILHA)
 # A execução do script continua apenas se o dataframe for carregado com sucesso.
 if df_original is not None:
     
+    # --- Processamento de Datas (feito aqui para não afetar o df_original) ---
+    df_com_data = df_original.copy()
+    df_com_data['Data da analise'] = df_com_data['Data da analise'].replace('', pd.NaT)
+    df_com_data['Data da analise'] = pd.to_datetime(df_com_data['Data da analise'], errors='coerce')
+    df_com_data_valida = df_com_data.dropna(subset=['Data da analise'])
+
     # --- BARRA LATERAL COM FILTROS GLOBAIS ---
     st.sidebar.header("Filtros")
 
     # Filtro de Data
-    data_min = df_original['Data da analise'].min().date()
-    data_max = df_original['Data da analise'].max().date()
+    data_min = df_com_data_valida['Data da analise'].min().date()
+    data_max = df_com_data_valida['Data da analise'].max().date()
     data_inicio = st.sidebar.date_input('Data de Início', data_min, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
     data_fim = st.sidebar.date_input('Data de Fim', data_max, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
 
@@ -118,16 +119,20 @@ if df_original is not None:
     responsavel_selecionado = st.sidebar.selectbox("Responsável", responsaveis_disponiveis)
 
     # --- Aplicação dos Filtros ---
-    df_filtrado = df_original[
-        (df_original['Data da analise'].dt.date >= data_inicio) &
-        (df_original['Data da analise'].dt.date <= data_fim)
+    # CORREÇÃO: O filtro de data é aplicado ao df_com_data, que contém as datas processadas
+    df_filtrado = df_com_data[
+        (df_com_data['Data da analise'].dt.date >= data_inicio) &
+        (df_com_data['Data da analise'].dt.date <= data_fim)
     ]
+    
+    # Os outros filtros são aplicados ao resultado do filtro de data
     if agente_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Agente'] == agente_selecionado]
     if status_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Status'] == status_selecionado]
     if responsavel_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Responsável'] == responsavel_selecionado]
+        
     # --- KPIs ---
     st.markdown("### Resumo do Período")
     total_fiscalizado = len(df_filtrado)
@@ -185,8 +190,8 @@ if df_original is not None:
     with col3:
         st.subheader("Pendências Plano de Ação (Geral)")
         
-        # --- CORREÇÃO: Cria um DataFrame para o Plano de Ação que IGNORA os filtros de data e status ---
-        df_plano_acao_filtrado = df_original.copy() # Começa com todos os dados da planilha original
+        # --- CORREÇÃO: Usa o df_original para este gráfico, ignorando o filtro de data ---
+        df_plano_acao_filtrado = df_original.copy()
         
         # Aplica apenas os filtros de Agente e Responsável
         if agente_selecionado != 'TODOS':
@@ -196,7 +201,6 @@ if df_original is not None:
 
 
         if not df_plano_acao_filtrado.empty:
-            # Filtra apenas as linhas onde 'Status Plano Ação' não está em branco
             df_plano_acao = df_plano_acao_filtrado[df_plano_acao_filtrado['Status Plano Ação'].str.strip() != '']
             
             if not df_plano_acao.empty:
