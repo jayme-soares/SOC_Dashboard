@@ -180,6 +180,10 @@ if df_original is not None:
                 text=erros_counts.values,
                 labels={'x': 'Tipo de Erro', 'y': 'Quantidade'}
             )
+            fig_bar.update_layout(
+                    showlegend=False,
+                    yaxis_range=[0, erros_counts.values.max() * 1.15]
+                )
             fig_bar.update_traces(textposition='outside')
             st.plotly_chart(fig_bar, use_container_width=True)
         else:
