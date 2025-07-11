@@ -14,8 +14,11 @@ st.set_page_config(
     layout="wide"
 )
 
-image = Image.open("imagens/ceneged_cover.jpeg")
-st.image(image, use_container_width =True)
+try:
+    image = Image.open("imagens/ceneged_cover.jpeg")
+    st.image(image, use_container_width =True)
+except FileNotFoundError:
+    st.warning("Arquivo de imagem 'imagens/ceneged_cover.jpeg' não encontrado. A imagem do cabeçalho não será exibida.")
 
 
 # --- Carregamento e Limpeza dos Dados a partir do Google Sheets ---
@@ -192,13 +195,11 @@ if df_original is not None:
     with col3:
         st.subheader("Pendências Plano de Ação")
         
-        # --- CORREÇÃO: Cria um DataFrame para o Plano de Ação que respeita o filtro de data ---
         df_plano_acao_filtrado = df_com_data_valida[
             (df_com_data_valida['Data da analise'].dt.date >= data_inicio) &
             (df_com_data_valida['Data da analise'].dt.date <= data_fim)
         ]
         
-        # Aplica os filtros de Agente e Responsável, mas IGNORA o filtro de Status
         if agente_selecionado != 'TODOS':
             df_plano_acao_filtrado = df_plano_acao_filtrado[df_plano_acao_filtrado['Agente'] == agente_selecionado]
         if responsavel_selecionado != 'TODOS':
@@ -211,7 +212,6 @@ if df_original is not None:
             if not df_plano_acao.empty:
                 status_acao = df_plano_acao['Status Plano Ação'].value_counts()
                 
-                # ALTERAÇÃO: Novas cores e ajuste do eixo Y
                 fig_bar2 = px.bar(
                     status_acao,
                     x=status_acao.index,
@@ -222,7 +222,6 @@ if df_original is not None:
                     color=status_acao.index,
                     color_discrete_map={'REALIZADO':'#90ee90', 'PENDENTE':'#f08080'} # Verde e Vermelho suaves
                 )
-                # Adiciona uma margem ao topo do eixo Y para garantir que o rótulo não seja cortado
                 fig_bar2.update_layout(
                     showlegend=False,
                     yaxis_range=[0, status_acao.values.max() * 1.15]
@@ -233,6 +232,32 @@ if df_original is not None:
                 st.info("Nenhuma pendência de plano de ação para os filtros selecionados.")
         else:
             st.warning("Nenhum dado para exibir com os filtros atuais.")
+            
+    # --- NOVO GRÁFICO: Ranking de Improcedentes por Agente ---
+    with col4:
+        st.subheader("Improcedentes por Agente")
+        df_improcedentes = df_filtrado[df_filtrado['Status'] == 'IMPROCEDENTE']
+        
+        if not df_improcedentes.empty:
+            ranking_agentes = df_improcedentes['Agente'].value_counts().sort_values(ascending=True)
+            
+            fig_ranking = px.bar(
+                ranking_agentes,
+                x=ranking_agentes.values,
+                y=ranking_agentes.index,
+                orientation='h',
+                title="Top Agentes com Improcedentes",
+                text=ranking_agentes.values,
+                labels={'x': 'Quantidade de Improcedentes', 'y': 'Agente'}
+            )
+            fig_ranking.update_layout(
+                showlegend=False,
+                xaxis_range=[0, ranking_agentes.values.max() * 1.15]
+            )
+            fig_ranking.update_traces(textposition='outside')
+            st.plotly_chart(fig_ranking, use_container_width=True)
+        else:
+            st.info("Nenhum erro encontrado para gerar o ranking.")
 
             
             
