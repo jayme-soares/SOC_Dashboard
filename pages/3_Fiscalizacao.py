@@ -119,13 +119,11 @@ if df_original is not None:
     responsavel_selecionado = st.sidebar.selectbox("Responsável", responsaveis_disponiveis)
 
     # --- Aplicação dos Filtros ---
-    # CORREÇÃO: O filtro de data é aplicado ao df_com_data, que contém as datas processadas
-    df_filtrado = df_com_data[
-        (df_com_data['Data da analise'].dt.date >= data_inicio) &
-        (df_com_data['Data da analise'].dt.date <= data_fim)
+    # DataFrame principal, que respeita TODOS os filtros
+    df_filtrado = df_com_data_valida[
+        (df_com_data_valida['Data da analise'].dt.date >= data_inicio) &
+        (df_com_data_valida['Data da analise'].dt.date <= data_fim)
     ]
-    
-    # Os outros filtros são aplicados ao resultado do filtro de data
     if agente_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Agente'] == agente_selecionado]
     if status_selecionado != 'TODOS':
@@ -192,12 +190,15 @@ if df_original is not None:
     col3,col4 = st.columns(2)
     
     with col3:
-        st.subheader("Pendências Plano de Ação (Geral)")
+        st.subheader("Pendências Plano de Ação")
         
-        # --- CORREÇÃO: Usa o df_original para este gráfico, ignorando o filtro de data ---
-        df_plano_acao_filtrado = df_original.copy()
+        # --- CORREÇÃO: Cria um DataFrame para o Plano de Ação que respeita o filtro de data ---
+        df_plano_acao_filtrado = df_com_data_valida[
+            (df_com_data_valida['Data da analise'].dt.date >= data_inicio) &
+            (df_com_data_valida['Data da analise'].dt.date <= data_fim)
+        ]
         
-        # Aplica apenas os filtros de Agente e Responsável
+        # Aplica os filtros de Agente e Responsável, mas IGNORA o filtro de Status
         if agente_selecionado != 'TODOS':
             df_plano_acao_filtrado = df_plano_acao_filtrado[df_plano_acao_filtrado['Agente'] == agente_selecionado]
         if responsavel_selecionado != 'TODOS':
