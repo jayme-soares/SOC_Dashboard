@@ -14,8 +14,11 @@ st.set_page_config(
     layout="wide"
 )
 
-image = Image.open("imagens/ceneged_cover.jpeg")
-st.image(image, use_container_width =True)
+try:
+    image = Image.open("imagens/ceneged_cover.jpeg")
+    st.image(image, use_container_width =True)
+except FileNotFoundError:
+    st.warning("Arquivo de imagem 'imagens/ceneged_cover.jpeg' não encontrado. A imagem do cabeçalho não será exibida.")
 
 
 # --- Carregamento e Limpeza dos Dados a partir do Google Sheets ---
@@ -67,12 +70,7 @@ def carregar_dados_de_gsheets(url_planilha):
                 st.error(f"Erro Crítico: A coluna '{col}' não foi encontrada na sua planilha. Verifique se o nome na planilha é exatamente este.")
                 return None
 
-        # 4. Trata células vazias na coluna de data antes da conversão
-        df['Data da analise'] = df['Data da analise'].replace('', pd.NaT)
-        df['Data da analise'] = pd.to_datetime(df['Data da analise'], errors='coerce')
-        df.dropna(subset=['Data da analise'], inplace=True) # Remove linhas onde a data não pôde ser convertida
-
-        # 5. Padroniza colunas de texto
+        # 4. Padroniza colunas de texto (sem converter data ou remover linhas)
         colunas_para_padronizar = ['Status', 'Erro', 'Agente', 'Responsável', 'Status Plano Ação']
         for col in colunas_para_padronizar:
             df[col] = df[col].astype(str).str.strip().str.upper()
@@ -96,12 +94,17 @@ df_original = carregar_dados_de_gsheets(URL_DA_PLANILHA)
 # A execução do script continua apenas se o dataframe for carregado com sucesso.
 if df_original is not None:
     
+    # --- Processamento de Datas (feito aqui para não afetar o df_original) ---
+    df_para_filtrar_data = df_original.copy()
+    df_para_filtrar_data['Data da analise'] = pd.to_datetime(df_para_filtrar_data['Data da analise'], errors='coerce')
+    
     # --- BARRA LATERAL COM FILTROS GLOBAIS ---
     st.sidebar.header("Filtros")
 
-    # Filtro de Data
-    data_min = df_original['Data da analise'].min().date()
-    data_max = df_original['Data da analise'].max().date()
+    # Filtro de Data (usa um dataframe temporário sem NaNs para definir o range)
+    df_datas_validas = df_para_filtrar_data.dropna(subset=['Data da analise'])
+    data_min = df_datas_validas['Data da analise'].min().date()
+    data_max = df_datas_validas['Data da analise'].max().date()
     data_inicio = st.sidebar.date_input('Data de Início', data_min, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
     data_fim = st.sidebar.date_input('Data de Fim', data_max, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
 
@@ -118,16 +121,23 @@ if df_original is not None:
     responsavel_selecionado = st.sidebar.selectbox("Responsável", responsaveis_disponiveis)
 
     # --- Aplicação dos Filtros ---
-    df_filtrado = df_original[
-        (df_original['Data da analise'].dt.date >= data_inicio) &
-        (df_original['Data da analise'].dt.date <= data_fim)
+    # Começa com o dataframe que tem as datas convertidas (incluindo NaT)
+    df_filtrado = df_para_filtrar_data.copy()
+
+    # Aplica o filtro de data (linhas com NaT na data serão automaticamente excluídas)
+    df_filtrado = df_filtrado[
+        (df_filtrado['Data da analise'].dt.date >= data_inicio) &
+        (df_filtrado['Data da analise'].dt.date <= data_fim)
     ]
+    
+    # Aplica os outros filtros
     if agente_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Agente'] == agente_selecionado]
     if status_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Status'] == status_selecionado]
     if responsavel_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Responsável'] == responsavel_selecionado]
+        
     # --- KPIs ---
     st.markdown("### Resumo do Período")
     total_fiscalizado = len(df_filtrado)
@@ -175,6 +185,10 @@ if df_original is not None:
                 text=erros_counts.values,
                 labels={'x': 'Tipo de Erro', 'y': 'Quantidade'}
             )
+            fig_bar.update_layout(
+                    showlegend=False,
+                    yaxis_range=[0, erros_counts.values.max() * 1.15]
+                )
             fig_bar.update_traces(textposition='outside')
             st.plotly_chart(fig_bar, use_container_width=True)
         else:
@@ -185,8 +199,8 @@ if df_original is not None:
     with col3:
         st.subheader("Pendências Plano de Ação (Geral)")
         
-        # --- CORREÇÃO: Cria um DataFrame para o Plano de Ação que IGNORA os filtros de data e status ---
-        df_plano_acao_filtrado = df_original.copy() # Começa com todos os dados da planilha original
+        # O filtro para este gráfico começa com o df_original completo
+        df_plano_acao_filtrado = df_original.copy()
         
         # Aplica apenas os filtros de Agente e Responsável
         if agente_selecionado != 'TODOS':
@@ -196,11 +210,11 @@ if df_original is not None:
 
 
         if not df_plano_acao_filtrado.empty:
-            # Filtra apenas as linhas onde 'Status Plano Ação' não está em branco
             df_plano_acao = df_plano_acao_filtrado[df_plano_acao_filtrado['Status Plano Ação'].str.strip() != '']
             
             if not df_plano_acao.empty:
                 status_acao = df_plano_acao['Status Plano Ação'].value_counts()
+                
                 fig_bar2 = px.bar(
                     status_acao,
                     x=status_acao.index,
@@ -209,9 +223,12 @@ if df_original is not None:
                     text=status_acao.values,
                     labels={'x': 'Status Plano de Ação', 'y': 'Quantidade'},
                     color=status_acao.index,
-                    color_discrete_map={'REALIZADO':'royalblue', 'PENDENTE':'darkorange'}
+                    color_discrete_map={'REALIZADO':'#90ee90', 'PENDENTE':'#f08080'} # Verde e Vermelho suaves
                 )
-                fig_bar2.update_layout(showlegend=False)
+                fig_bar2.update_layout(
+                    showlegend=False,
+                    yaxis_range=[0, status_acao.values.max() * 1.15]
+                )
                 fig_bar2.update_traces(textposition='outside')
                 st.plotly_chart(fig_bar2, use_container_width=True)
             else:
@@ -219,7 +236,30 @@ if df_original is not None:
         else:
             st.warning("Nenhum dado para exibir com os filtros atuais.")
 
+    with col4:
+        st.subheader("Ranking de Improcedentes por Agente")
+        df_improcedentes = df_filtrado[df_filtrado['Status'] == 'IMPROCEDENTE']
+        
+        if not df_improcedentes.empty:
+            ranking_agentes = df_improcedentes['Agente'].value_counts().sort_values(ascending=True)
             
+            fig_ranking = px.bar(
+                ranking_agentes,
+                x=ranking_agentes.values,
+                y=ranking_agentes.index,
+                orientation='h',
+                title="Top Agentes com Improcedentes",
+                text=ranking_agentes.values,
+                labels={'x': 'Quantidade de Improcedentes', 'y': 'Agente'}
+            )
+            fig_ranking.update_layout(
+                showlegend=False,
+                xaxis_range=[0, ranking_agentes.values.max() * 1.15]
+            )
+            fig_ranking.update_traces(textposition='outside')
+            st.plotly_chart(fig_ranking, use_container_width=True)
+        else:
+            st.info("Nenhum erro encontrado para gerar o ranking.")
             
     # --- Tabela de Dados Detalhada ---
     with st.expander("Ver dados detalhados da fiscalização"):
