@@ -88,8 +88,8 @@ if df_raw is not None:
     data_min = df_base['Data da analise'].min().date()
     data_max = df_base['Data da analise'].max().date()
 
-    data_inicio = st.sidebar.date_input('Data de Início', data_min, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
-    data_fim = st.sidebar.date_input('Data de Fim', data_max, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
+    data_inicio = st.sidebar.date_input('Data de Início', data_min, min_value=data_min, max_value=data_max, format="DD/MM/YYYY")
+    data_fim = st.sidebar.date_input('Data de Fim', data_max, min_value=data_min, max_value=data_max, format="DD/MM/YYYY")
     
     # Converte as datas de início e fim para datetime para a comparação
     data_inicio_dt = datetime.combine(data_inicio, datetime.min.time())
