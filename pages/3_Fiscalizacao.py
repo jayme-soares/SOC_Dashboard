@@ -75,6 +75,9 @@ def carregar_dados_de_gsheets(url_planilha):
         for col in colunas_para_padronizar:
             df[col] = df[col].astype(str).str.strip().str.upper()
         
+        # 5. Converte a coluna de data, tratando erros
+        df['Data da analise'] = pd.to_datetime(df['Data da analise'], errors='coerce')
+
         return df
     except gspread.exceptions.SpreadsheetNotFound:
         st.error(f"Planilha não encontrada na URL fornecida. Verifique o link e se a planilha foi compartilhada com o e-mail de serviço.")
@@ -109,36 +112,37 @@ if df_original is not None:
     responsaveis_disponiveis = ['TODOS'] + sorted(df_original['Responsável'].dropna().unique().tolist())
     responsavel_selecionado = st.sidebar.selectbox("Responsável", responsaveis_disponiveis)
 
-    # --- CORREÇÃO: Filtro de Data Opcional ---
-    filtrar_por_data = st.sidebar.checkbox("Ativar filtro de data")
-    
+    # --- Lógica de Filtro de Data Automático ---
+    df_datas_validas = df_original.dropna(subset=['Data da analise'])
+    data_min = df_datas_validas['Data da analise'].min().date()
+    data_max = df_datas_validas['Data da analise'].max().date()
+
+    data_inicio = st.sidebar.date_input('Data de Início', data_min, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
+    data_fim = st.sidebar.date_input('Data de Fim', data_max, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
+
+    # --- Aplicação dos Filtros ---
     df_filtrado = df_original.copy()
 
-    if filtrar_por_data:
-        df_filtrado['Data da analise'] = pd.to_datetime(df_filtrado['Data da analise'], errors='coerce')
-        df_datas_validas = df_filtrado.dropna(subset=['Data da analise'])
-        
-        if not df_datas_validas.empty:
-            data_min = df_datas_validas['Data da analise'].min().date()
-            data_max = df_datas_validas['Data da analise'].max().date()
-            data_inicio = st.sidebar.date_input('Data de Início', data_min, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
-            data_fim = st.sidebar.date_input('Data de Fim', data_max, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
-            
-            # Aplica o filtro de data
-            df_filtrado = df_filtrado[
-                (df_filtrado['Data da analise'].dt.date >= data_inicio) &
-                (df_filtrado['Data da analise'].dt.date <= data_fim)
-            ]
-        else:
-            st.sidebar.warning("Nenhuma data válida encontrada na planilha para filtrar.")
-
-    # --- Aplicação dos Filtros Categóricos ---
+    # Aplica filtros categóricos primeiro
     if agente_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Agente'] == agente_selecionado]
     if status_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Status'] == status_selecionado]
     if responsavel_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Responsável'] == responsavel_selecionado]
+    
+    # Aplica filtro de data apenas se o intervalo selecionado for diferente do intervalo completo
+    if data_inicio != data_min or data_fim != data_max:
+        # Garante que a coluna de data está no formato correto para comparação
+        df_filtrado_com_data = df_filtrado.copy()
+        df_filtrado_com_data['Data da analise'] = pd.to_datetime(df_filtrado_com_data['Data da analise'], errors='coerce')
+        # Remove linhas onde a data não pôde ser convertida antes de filtrar
+        df_filtrado_com_data.dropna(subset=['Data da analise'], inplace=True)
+        
+        df_filtrado = df_filtrado_com_data[
+            (df_filtrado_com_data['Data da analise'].dt.date >= data_inicio) &
+            (df_filtrado_com_data['Data da analise'].dt.date <= data_fim)
+        ]
         
     # --- KPIs ---
     st.markdown("### Resumo do Período")
@@ -201,7 +205,7 @@ if df_original is not None:
     with col3:
         st.subheader("Pendências Plano de Ação")
         
-        # O filtro para este gráfico começa com o df_filtrado (que pode ou não ter filtro de data)
+        # O filtro para este gráfico começa com o df_filtrado
         df_plano_acao_filtrado = df_filtrado.copy()
         
         # Remove o filtro de 'Status' se ele foi aplicado, para contar todas as pendências
@@ -213,7 +217,8 @@ if df_original is not None:
             if responsavel_selecionado != 'TODOS':
                 df_temp = df_temp[df_temp['Responsável'] == responsavel_selecionado]
             
-            if filtrar_por_data:
+            # Aplica o filtro de data se o usuário o tiver alterado
+            if data_inicio != data_min or data_fim != data_max:
                 df_temp['Data da analise'] = pd.to_datetime(df_temp['Data da analise'], errors='coerce')
                 df_plano_acao_filtrado = df_temp[
                     (df_temp['Data da analise'].dt.date >= data_inicio) &
