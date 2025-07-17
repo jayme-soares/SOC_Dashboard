@@ -25,7 +25,7 @@ except FileNotFoundError:
 @st.cache_data
 def carregar_dados_de_gsheets(url_planilha):
     """
-    Carrega e processa os dados da planilha de fiscalização do Google Sheets a partir de uma URL.
+    Carrega os dados brutos da planilha do Google Sheets.
     """
     try:
         # Autenticação e acesso à API
@@ -45,12 +45,10 @@ def carregar_dados_de_gsheets(url_planilha):
         # Cria o DataFrame
         df = pd.DataFrame(all_values[1:], columns=all_values[0])
 
-        # --- Limpeza e Padronização dos Dados ---
-        
-        # 1. Limpa os nomes das colunas para remover espaços em branco
+        # Limpa os nomes das colunas para remover espaços em branco
         df.columns = [col.strip() for col in df.columns]
 
-        # 2. Renomeia colunas duplicadas para garantir unicidade
+        # Renomeia colunas duplicadas para garantir unicidade
         cols = []
         counts = {}
         for col in df.columns:
@@ -62,25 +60,7 @@ def carregar_dados_de_gsheets(url_planilha):
                 counts[col] = 0
                 cols.append(col)
         df.columns = cols
-
-        # 3. Verifica se as colunas essenciais existem
-        colunas_essenciais = ['Status', 'Erro', 'Agente', 'Data da analise', 'Responsável', 'Status Plano Ação']
-        for col in colunas_essenciais:
-            if col not in df.columns:
-                st.error(f"Erro Crítico: A coluna '{col}' não foi encontrada na sua planilha. Verifique se o nome na planilha é exatamente este.")
-                return None
-
-        # 4. Padroniza colunas de texto (sem converter data ou remover linhas)
-        colunas_para_padronizar = ['Status', 'Erro', 'Agente', 'Responsável', 'Status Plano Ação']
-        for col in colunas_para_padronizar:
-            df[col] = df[col].astype(str).str.strip().str.upper()
         
-        # 5. Converte a coluna de data, tratando erros
-        df['Data da analise'] = pd.to_datetime(df['Data da analise'], errors='coerce')
-
-        # 6. CORREÇÃO: Remove linhas onde o Status é vazio, pois não foram fiscalizadas
-        df = df[df['Status'].isin(['PROCEDENTE', 'IMPROCEDENTE'])]
-
         return df
     except gspread.exceptions.SpreadsheetNotFound:
         st.error(f"Planilha não encontrada na URL fornecida. Verifique o link e se a planilha foi compartilhada com o e-mail de serviço.")
@@ -93,13 +73,33 @@ def carregar_dados_de_gsheets(url_planilha):
 st.title("🔍 Dashboard Fiscalização")
 
 # --- Carregamento dos Dados ---
-# IMPORTANTE: Cole aqui a URL da sua Planilha Google de fiscalização
 URL_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/1zI6BA_hPSMRRFj1u33Ot3xqPYBrSrnhqv_pSSxBRS6Q/edit?usp=sharing" 
-df_original = carregar_dados_de_gsheets(URL_DA_PLANILHA)
+df_raw = carregar_dados_de_gsheets(URL_DA_PLANILHA)
 
 # A execução do script continua apenas se o dataframe for carregado com sucesso.
-if df_original is not None:
+if df_raw is not None:
     
+    # --- PREPARAÇÃO DOS DADOS ---
+    df_prepared = df_raw.copy()
+    
+    # 1. Verifica se as colunas essenciais existem
+    colunas_essenciais = ['Status', 'Erro', 'Agente', 'Data da analise', 'Responsável', 'Status Plano Ação']
+    for col in colunas_essenciais:
+        if col not in df_prepared.columns:
+            st.error(f"Erro Crítico: A coluna '{col}' não foi encontrada na sua planilha. Verifique se o nome na planilha é exatamente este.")
+            st.stop() # Interrompe a execução se uma coluna essencial faltar
+
+    # 2. Padroniza colunas de texto
+    colunas_para_padronizar = ['Status', 'Erro', 'Agente', 'Responsável', 'Status Plano Ação']
+    for col in colunas_para_padronizar:
+        df_prepared[col] = df_prepared[col].astype(str).str.strip().str.upper()
+    
+    # 3. Converte a coluna de data, tratando erros
+    df_prepared['Data da analise'] = pd.to_datetime(df_prepared['Data da analise'], errors='coerce')
+
+    # 4. CORREÇÃO: Cria a base de dados principal removendo linhas onde o Status é vazio
+    df_original = df_prepared[df_prepared['Status'].isin(['PROCEDENTE', 'IMPROCEDENTE'])].copy()
+
     # --- BARRA LATERAL COM FILTROS GLOBAIS ---
     st.sidebar.header("Filtros")
 
@@ -128,10 +128,10 @@ if df_original is not None:
 
     # Aplica filtro de data apenas se o utilizador o alterar.
     if data_inicio != data_min or data_fim != data_max:
-        df_filtrado = df_filtrado.dropna(subset=['Data da analise'])
-        df_filtrado = df_filtrado[
-            (df_filtrado['Data da analise'].dt.date >= data_inicio) &
-            (df_filtrado['Data da analise'].dt.date <= data_fim)
+        df_filtrado_com_data = df_filtrado.dropna(subset=['Data da analise'])
+        df_filtrado = df_filtrado_com_data[
+            (df_filtrado_com_data['Data da analise'].dt.date >= data_inicio) &
+            (df_filtrado_com_data['Data da analise'].dt.date <= data_fim)
         ]
 
     # Aplica os filtros categóricos ao resultado
@@ -145,7 +145,6 @@ if df_original is not None:
     # --- KPIs ---
     st.markdown("### Resumo do Período")
     
-    # A lógica de contagem agora opera sobre o df_filtrado, que está correto.
     total_fiscalizado = len(df_filtrado)
     df_com_erros = df_filtrado[df_filtrado['Erro'].str.strip() != '']
     total_erros = len(df_com_erros)
