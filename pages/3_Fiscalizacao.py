@@ -78,6 +78,9 @@ def carregar_dados_de_gsheets(url_planilha):
         # 5. Converte a coluna de data, tratando erros
         df['Data da analise'] = pd.to_datetime(df['Data da analise'], errors='coerce')
 
+        # 6. CORREÇÃO: Remove linhas onde o Status é vazio, pois não foram fiscalizadas
+        df = df[df['Status'].isin(['PROCEDENTE', 'IMPROCEDENTE'])]
+
         return df
     except gspread.exceptions.SpreadsheetNotFound:
         st.error(f"Planilha não encontrada na URL fornecida. Verifique o link e se a planilha foi compartilhada com o e-mail de serviço.")
@@ -123,9 +126,8 @@ if df_original is not None:
     # --- Aplicação dos Filtros ---
     df_filtrado = df_original.copy()
 
-    # CORREÇÃO: Aplica o filtro de data primeiro, mas apenas se o utilizador o alterar.
+    # Aplica filtro de data apenas se o utilizador o alterar.
     if data_inicio != data_min or data_fim != data_max:
-        # Filtra apenas as linhas que têm uma data válida dentro do intervalo
         df_filtrado = df_filtrado.dropna(subset=['Data da analise'])
         df_filtrado = df_filtrado[
             (df_filtrado['Data da analise'].dt.date >= data_inicio) &
@@ -144,12 +146,9 @@ if df_original is not None:
     st.markdown("### Resumo do Período")
     
     # A lógica de contagem agora opera sobre o df_filtrado, que está correto.
-    df_fiscalizado = df_filtrado[df_filtrado['Status'].isin(['PROCEDENTE', 'IMPROCEDENTE'])]
-    total_fiscalizado = len(df_fiscalizado)
-    
+    total_fiscalizado = len(df_filtrado)
     df_com_erros = df_filtrado[df_filtrado['Erro'].str.strip() != '']
     total_erros = len(df_com_erros)
-    
     percentual_erro = (total_erros / total_fiscalizado * 100) if total_fiscalizado > 0 else 0
 
     kpi1, kpi2, kpi3 = st.columns(3)
@@ -207,48 +206,30 @@ if df_original is not None:
         st.subheader("Pendências Plano de Ação")
         
         # Cria um dataframe específico para este gráfico
-        df_plano_acao_filtrado = df_original.copy()
-
-        # Aplica filtro de data se o utilizador o alterou
-        if data_inicio != data_min or data_fim != data_max:
-            df_plano_acao_filtrado = df_plano_acao_filtrado.dropna(subset=['Data da analise'])
-            df_plano_acao_filtrado = df_plano_acao_filtrado[
-                (df_plano_acao_filtrado['Data da analise'].dt.date >= data_inicio) &
-                (df_plano_acao_filtrado['Data da analise'].dt.date <= data_fim)
-            ]
-        
-        # Aplica os filtros de Agente e Responsável (mas não o de Status)
-        if agente_selecionado != 'TODOS':
-            df_plano_acao_filtrado = df_plano_acao_filtrado[df_plano_acao_filtrado['Agente'] == agente_selecionado]
-        if responsavel_selecionado != 'TODOS':
-            df_plano_acao_filtrado = df_plano_acao_filtrado[df_plano_acao_filtrado['Responsável'] == responsavel_selecionado]
+        df_plano_acao_filtrado = df_filtrado[df_filtrado['Status Plano Ação'].isin(['PENDENTE', 'REALIZADO'])]
 
         if not df_plano_acao_filtrado.empty:
-            df_plano_acao = df_plano_acao_filtrado[df_plano_acao_filtrado['Status Plano Ação'].str.strip() != '']
+            status_acao = df_plano_acao_filtrado['Status Plano Ação'].value_counts()
             
-            if not df_plano_acao.empty:
-                status_acao = df_plano_acao['Status Plano Ação'].value_counts()
-                
-                fig_bar2 = px.bar(
-                    status_acao,
-                    x=status_acao.index,
-                    y=status_acao.values,
-                    title="Pendências por Status do Plano de Ação",
-                    text=status_acao.values,
-                    labels={'x': 'Status Plano de Ação', 'y': 'Quantidade'},
-                    color=status_acao.index,
-                    color_discrete_map={'REALIZADO':'#90ee90', 'PENDENTE':'#f08080'}
-                )
-                fig_bar2.update_layout(
-                    showlegend=False,
-                    yaxis_range=[0, status_acao.values.max() * 1.15]
-                )
-                fig_bar2.update_traces(textposition='outside')
-                st.plotly_chart(fig_bar2, use_container_width=True)
-            else:
-                st.info("Nenhuma pendência de plano de ação para os filtros selecionados.")
+            fig_bar2 = px.bar(
+                status_acao,
+                x=status_acao.index,
+                y=status_acao.values,
+                title="Pendências por Status do Plano de Ação",
+                text=status_acao.values,
+                labels={'x': 'Status Plano de Ação', 'y': 'Quantidade'},
+                color=status_acao.index,
+                color_discrete_map={'REALIZADO':'#90ee90', 'PENDENTE':'#f08080'}
+            )
+            fig_bar2.update_layout(
+                showlegend=False,
+                yaxis_range=[0, status_acao.values.max() * 1.15]
+            )
+            fig_bar2.update_traces(textposition='outside')
+            st.plotly_chart(fig_bar2, use_container_width=True)
         else:
-            st.warning("Nenhum dado para exibir com os filtros atuais.")
+            st.info("Nenhuma pendência de plano de ação para os filtros selecionados.")
+        
 
     with col4:
         st.subheader("Ranking de Improcedentes por Agente")
