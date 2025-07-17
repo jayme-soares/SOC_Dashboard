@@ -68,20 +68,11 @@ if df_raw is not None:
     for col in colunas_essenciais:
         df_prepared[col] = df_prepared[col].astype(str).str.strip().str.upper()
     
-    df_prepared['Data da analise'] = pd.to_datetime(df_prepared['Data da analise'], errors='coerce')
-    
     # Cria a base de dados principal, contendo apenas as linhas que foram de facto fiscalizadas.
     df_base = df_prepared[df_prepared['Status'].isin(['PROCEDENTE', 'IMPROCEDENTE'])].copy()
 
-    # --- 2. BARRA LATERAL E FILTROS ---
+    # --- 2. BARRA LATERAL E FILTROS (SEM DATA) ---
     st.sidebar.header("Filtros")
-
-    df_datas_validas = df_base.dropna(subset=['Data da analise'])
-    data_min = df_datas_validas['Data da analise'].min().date()
-    data_max = df_datas_validas['Data da analise'].max().date()
-
-    data_inicio = st.sidebar.date_input('Data de Início', data_min, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
-    data_fim = st.sidebar.date_input('Data de Fim', data_max, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
 
     agente_selecionado = st.sidebar.selectbox("Agente", ['TODOS'] + sorted(df_base['Agente'].unique()))
     status_selecionado = st.sidebar.selectbox("Status", ['TODOS'] + sorted(df_base['Status'].unique()))
@@ -89,13 +80,6 @@ if df_raw is not None:
 
     # --- 3. APLICAÇÃO SEQUENCIAL DOS FILTROS ---
     df_filtrado = df_base.copy()
-
-    # Filtro de Data
-    df_filtrado_com_data = df_filtrado.dropna(subset=['Data da analise'])
-    df_filtrado = df_filtrado_com_data[
-        (df_filtrado_com_data['Data da analise'].dt.date >= data_inicio) &
-        (df_filtrado_com_data['Data da analise'].dt.date <= data_fim)
-    ]
 
     # Filtros Categóricos
     if agente_selecionado != 'TODOS':
