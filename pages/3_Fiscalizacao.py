@@ -16,7 +16,7 @@ st.set_page_config(
 
 try:
     image = Image.open("imagens/ceneged_cover.jpeg")
-    st.image(image, use_container_width=True)
+    st.image(image, use_container_width =True)
 except FileNotFoundError:
     st.warning("Arquivo de imagem 'imagens/ceneged_cover.jpeg' não encontrado. A imagem do cabeçalho não será exibida.")
 
@@ -94,19 +94,8 @@ df_original = carregar_dados_de_gsheets(URL_DA_PLANILHA)
 # A execução do script continua apenas se o dataframe for carregado com sucesso.
 if df_original is not None:
     
-    # --- Processamento de Datas (feito aqui para não afetar o df_original) ---
-    df_para_filtrar_data = df_original.copy()
-    df_para_filtrar_data['Data da analise'] = pd.to_datetime(df_para_filtrar_data['Data da analise'], errors='coerce')
-    
     # --- BARRA LATERAL COM FILTROS GLOBAIS ---
     st.sidebar.header("Filtros")
-
-    # Filtro de Data (usa um dataframe temporário sem NaNs para definir o range)
-    df_datas_validas = df_para_filtrar_data.dropna(subset=['Data da analise'])
-    data_min = df_datas_validas['Data da analise'].min().date()
-    data_max = df_datas_validas['Data da analise'].max().date()
-    data_inicio = st.sidebar.date_input('Data de Início', data_min, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
-    data_fim = st.sidebar.date_input('Data de Fim', data_max, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
 
     # Filtro por Agente
     agentes_disponiveis = ['TODOS'] + sorted(df_original['Agente'].dropna().unique().tolist())
@@ -120,17 +109,30 @@ if df_original is not None:
     responsaveis_disponiveis = ['TODOS'] + sorted(df_original['Responsável'].dropna().unique().tolist())
     responsavel_selecionado = st.sidebar.selectbox("Responsável", responsaveis_disponiveis)
 
-    # --- Aplicação dos Filtros ---
-    # Começa com o dataframe que tem as datas convertidas (incluindo NaT)
-    df_filtrado = df_para_filtrar_data.copy()
-
-    # Aplica o filtro de data (linhas com NaT na data serão automaticamente excluídas)
-    df_filtrado = df_filtrado[
-        (df_filtrado['Data da analise'].dt.date >= data_inicio) &
-        (df_filtrado['Data da analise'].dt.date <= data_fim)
-    ]
+    # --- CORREÇÃO: Filtro de Data Opcional ---
+    filtrar_por_data = st.sidebar.checkbox("Ativar filtro de data")
     
-    # Aplica os outros filtros
+    df_filtrado = df_original.copy()
+
+    if filtrar_por_data:
+        df_filtrado['Data da analise'] = pd.to_datetime(df_filtrado['Data da analise'], errors='coerce')
+        df_datas_validas = df_filtrado.dropna(subset=['Data da analise'])
+        
+        if not df_datas_validas.empty:
+            data_min = df_datas_validas['Data da analise'].min().date()
+            data_max = df_datas_validas['Data da analise'].max().date()
+            data_inicio = st.sidebar.date_input('Data de Início', data_min, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
+            data_fim = st.sidebar.date_input('Data de Fim', data_max, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
+            
+            # Aplica o filtro de data
+            df_filtrado = df_filtrado[
+                (df_filtrado['Data da analise'].dt.date >= data_inicio) &
+                (df_filtrado['Data da analise'].dt.date <= data_fim)
+            ]
+        else:
+            st.sidebar.warning("Nenhuma data válida encontrada na planilha para filtrar.")
+
+    # --- Aplicação dos Filtros Categóricos ---
     if agente_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Agente'] == agente_selecionado]
     if status_selecionado != 'TODOS':
@@ -197,16 +199,28 @@ if df_original is not None:
     col3,col4 = st.columns(2)
     
     with col3:
-        st.subheader("Pendências Plano de Ação (Geral)")
+        st.subheader("Pendências Plano de Ação")
         
-        # O filtro para este gráfico começa com o df_original completo
-        df_plano_acao_filtrado = df_original.copy()
+        # O filtro para este gráfico começa com o df_filtrado (que pode ou não ter filtro de data)
+        df_plano_acao_filtrado = df_filtrado.copy()
         
-        # Aplica apenas os filtros de Agente e Responsável
-        if agente_selecionado != 'TODOS':
-            df_plano_acao_filtrado = df_plano_acao_filtrado[df_plano_acao_filtrado['Agente'] == agente_selecionado]
-        if responsavel_selecionado != 'TODOS':
-            df_plano_acao_filtrado = df_plano_acao_filtrado[df_plano_acao_filtrado['Responsável'] == responsavel_selecionado]
+        # Remove o filtro de 'Status' se ele foi aplicado, para contar todas as pendências
+        if status_selecionado != 'TODOS':
+            # Refiltra a partir do dataframe que não tem o filtro de status
+            df_temp = df_original.copy()
+            if agente_selecionado != 'TODOS':
+                df_temp = df_temp[df_temp['Agente'] == agente_selecionado]
+            if responsavel_selecionado != 'TODOS':
+                df_temp = df_temp[df_temp['Responsável'] == responsavel_selecionado]
+            
+            if filtrar_por_data:
+                df_temp['Data da analise'] = pd.to_datetime(df_temp['Data da analise'], errors='coerce')
+                df_plano_acao_filtrado = df_temp[
+                    (df_temp['Data da analise'].dt.date >= data_inicio) &
+                    (df_temp['Data da analise'].dt.date <= data_fim)
+                ]
+            else:
+                df_plano_acao_filtrado = df_temp
 
 
         if not df_plano_acao_filtrado.empty:
@@ -223,7 +237,7 @@ if df_original is not None:
                     text=status_acao.values,
                     labels={'x': 'Status Plano de Ação', 'y': 'Quantidade'},
                     color=status_acao.index,
-                    color_discrete_map={'REALIZADO':'#90ee90', 'PENDENTE':'#f08080'} # Verde e Vermelho suaves
+                    color_discrete_map={'REALIZADO':'#90ee90', 'PENDENTE':'#f08080'}
                 )
                 fig_bar2.update_layout(
                     showlegend=False,
