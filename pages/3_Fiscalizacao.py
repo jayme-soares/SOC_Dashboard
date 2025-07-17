@@ -123,29 +123,27 @@ if df_original is not None:
     # --- Aplicação dos Filtros ---
     df_filtrado = df_original.copy()
 
-    # Aplica filtros categóricos primeiro
+    # CORREÇÃO: Aplica o filtro de data primeiro, mas apenas se o utilizador o alterar.
+    if data_inicio != data_min or data_fim != data_max:
+        # Filtra apenas as linhas que têm uma data válida dentro do intervalo
+        df_filtrado = df_filtrado.dropna(subset=['Data da analise'])
+        df_filtrado = df_filtrado[
+            (df_filtrado['Data da analise'].dt.date >= data_inicio) &
+            (df_filtrado['Data da analise'].dt.date <= data_fim)
+        ]
+
+    # Aplica os filtros categóricos ao resultado
     if agente_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Agente'] == agente_selecionado]
     if status_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Status'] == status_selecionado]
     if responsavel_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Responsável'] == responsavel_selecionado]
-    
-    # Aplica filtro de data apenas se o intervalo selecionado for diferente do intervalo completo
-    if data_inicio != data_min or data_fim != data_max:
-        df_filtrado_com_data = df_filtrado.copy()
-        df_filtrado_com_data['Data da analise'] = pd.to_datetime(df_filtrado_com_data['Data da analise'], errors='coerce')
-        df_filtrado_com_data.dropna(subset=['Data da analise'], inplace=True)
-        
-        df_filtrado = df_filtrado_com_data[
-            (df_filtrado_com_data['Data da analise'].dt.date >= data_inicio) &
-            (df_filtrado_com_data['Data da analise'].dt.date <= data_fim)
-        ]
         
     # --- KPIs ---
     st.markdown("### Resumo do Período")
     
-    # CORREÇÃO: Lógica de contagem ajustada conforme as regras
+    # A lógica de contagem agora opera sobre o df_filtrado, que está correto.
     df_fiscalizado = df_filtrado[df_filtrado['Status'].isin(['PROCEDENTE', 'IMPROCEDENTE'])]
     total_fiscalizado = len(df_fiscalizado)
     
@@ -166,8 +164,8 @@ if df_original is not None:
 
     with col1:
         st.subheader("Status das Fiscalizações")
-        if not df_fiscalizado.empty:
-            status_counts = df_fiscalizado['Status'].value_counts()
+        if not df_filtrado.empty:
+            status_counts = df_filtrado['Status'].value_counts()
             fig_donut = px.pie(
                 status_counts, 
                 values=status_counts.values, 
@@ -208,23 +206,22 @@ if df_original is not None:
     with col3:
         st.subheader("Pendências Plano de Ação")
         
-        df_plano_acao_filtrado = df_filtrado.copy()
+        # Cria um dataframe específico para este gráfico
+        df_plano_acao_filtrado = df_original.copy()
+
+        # Aplica filtro de data se o utilizador o alterou
+        if data_inicio != data_min or data_fim != data_max:
+            df_plano_acao_filtrado = df_plano_acao_filtrado.dropna(subset=['Data da analise'])
+            df_plano_acao_filtrado = df_plano_acao_filtrado[
+                (df_plano_acao_filtrado['Data da analise'].dt.date >= data_inicio) &
+                (df_plano_acao_filtrado['Data da analise'].dt.date <= data_fim)
+            ]
         
-        if status_selecionado != 'TODOS':
-            df_temp = df_original.copy()
-            if agente_selecionado != 'TODOS':
-                df_temp = df_temp[df_temp['Agente'] == agente_selecionado]
-            if responsavel_selecionado != 'TODOS':
-                df_temp = df_temp[df_temp['Responsável'] == responsavel_selecionado]
-            
-            if data_inicio != data_min or data_fim != data_max:
-                df_temp['Data da analise'] = pd.to_datetime(df_temp['Data da analise'], errors='coerce')
-                df_plano_acao_filtrado = df_temp[
-                    (df_temp['Data da analise'].dt.date >= data_inicio) &
-                    (df_temp['Data da analise'].dt.date <= data_fim)
-                ]
-            else:
-                df_plano_acao_filtrado = df_temp
+        # Aplica os filtros de Agente e Responsável (mas não o de Status)
+        if agente_selecionado != 'TODOS':
+            df_plano_acao_filtrado = df_plano_acao_filtrado[df_plano_acao_filtrado['Agente'] == agente_selecionado]
+        if responsavel_selecionado != 'TODOS':
+            df_plano_acao_filtrado = df_plano_acao_filtrado[df_plano_acao_filtrado['Responsável'] == responsavel_selecionado]
 
         if not df_plano_acao_filtrado.empty:
             df_plano_acao = df_plano_acao_filtrado[df_plano_acao_filtrado['Status Plano Ação'].str.strip() != '']
@@ -258,7 +255,6 @@ if df_original is not None:
         df_improcedentes = df_filtrado[df_filtrado['Status'] == 'IMPROCEDENTE']
         
         if not df_improcedentes.empty:
-            # CORREÇÃO: Ordenação alterada para decrescente
             ranking_agentes = df_improcedentes['Agente'].value_counts().sort_values(ascending=False)
             
             fig_ranking = px.bar(
@@ -273,7 +269,7 @@ if df_original is not None:
             fig_ranking.update_layout(
                 showlegend=False,
                 xaxis_range=[0, ranking_agentes.values.max() * 1.15],
-                yaxis={'categoryorder':'total ascending'} # Garante a ordem correta no gráfico
+                yaxis={'categoryorder':'total ascending'}
             )
             fig_ranking.update_traces(textposition='outside')
             st.plotly_chart(fig_ranking, use_container_width=True)
