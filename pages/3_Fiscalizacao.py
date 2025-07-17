@@ -133,10 +133,8 @@ if df_original is not None:
     
     # Aplica filtro de data apenas se o intervalo selecionado for diferente do intervalo completo
     if data_inicio != data_min or data_fim != data_max:
-        # Garante que a coluna de data está no formato correto para comparação
         df_filtrado_com_data = df_filtrado.copy()
         df_filtrado_com_data['Data da analise'] = pd.to_datetime(df_filtrado_com_data['Data da analise'], errors='coerce')
-        # Remove linhas onde a data não pôde ser convertida antes de filtrar
         df_filtrado_com_data.dropna(subset=['Data da analise'], inplace=True)
         
         df_filtrado = df_filtrado_com_data[
@@ -146,8 +144,14 @@ if df_original is not None:
         
     # --- KPIs ---
     st.markdown("### Resumo do Período")
-    total_fiscalizado = len(df_filtrado)
-    total_erros = df_filtrado[df_filtrado['Status'] == 'IMPROCEDENTE'].shape[0]
+    
+    # CORREÇÃO: Lógica de contagem ajustada conforme as regras
+    df_fiscalizado = df_filtrado[df_filtrado['Status'].isin(['PROCEDENTE', 'IMPROCEDENTE'])]
+    total_fiscalizado = len(df_fiscalizado)
+    
+    df_com_erros = df_filtrado[df_filtrado['Erro'].str.strip() != '']
+    total_erros = len(df_com_erros)
+    
     percentual_erro = (total_erros / total_fiscalizado * 100) if total_fiscalizado > 0 else 0
 
     kpi1, kpi2, kpi3 = st.columns(3)
@@ -162,8 +166,8 @@ if df_original is not None:
 
     with col1:
         st.subheader("Status das Fiscalizações")
-        if not df_filtrado.empty:
-            status_counts = df_filtrado['Status'].value_counts()
+        if not df_fiscalizado.empty:
+            status_counts = df_fiscalizado['Status'].value_counts()
             fig_donut = px.pie(
                 status_counts, 
                 values=status_counts.values, 
@@ -180,9 +184,8 @@ if df_original is not None:
 
     with col2:
         st.subheader("Tipos de Erro Encontrados")
-        df_erros = df_filtrado[df_filtrado['Status'] == 'IMPROCEDENTE']
-        if not df_erros.empty:
-            erros_counts = df_erros['Erro'].value_counts()
+        if not df_com_erros.empty:
+            erros_counts = df_com_erros['Erro'].value_counts()
             fig_bar = px.bar(
                 erros_counts,
                 x=erros_counts.index,
@@ -205,19 +208,15 @@ if df_original is not None:
     with col3:
         st.subheader("Pendências Plano de Ação")
         
-        # O filtro para este gráfico começa com o df_filtrado
         df_plano_acao_filtrado = df_filtrado.copy()
         
-        # Remove o filtro de 'Status' se ele foi aplicado, para contar todas as pendências
         if status_selecionado != 'TODOS':
-            # Refiltra a partir do dataframe que não tem o filtro de status
             df_temp = df_original.copy()
             if agente_selecionado != 'TODOS':
                 df_temp = df_temp[df_temp['Agente'] == agente_selecionado]
             if responsavel_selecionado != 'TODOS':
                 df_temp = df_temp[df_temp['Responsável'] == responsavel_selecionado]
             
-            # Aplica o filtro de data se o usuário o tiver alterado
             if data_inicio != data_min or data_fim != data_max:
                 df_temp['Data da analise'] = pd.to_datetime(df_temp['Data da analise'], errors='coerce')
                 df_plano_acao_filtrado = df_temp[
@@ -226,7 +225,6 @@ if df_original is not None:
                 ]
             else:
                 df_plano_acao_filtrado = df_temp
-
 
         if not df_plano_acao_filtrado.empty:
             df_plano_acao = df_plano_acao_filtrado[df_plano_acao_filtrado['Status Plano Ação'].str.strip() != '']
@@ -260,7 +258,8 @@ if df_original is not None:
         df_improcedentes = df_filtrado[df_filtrado['Status'] == 'IMPROCEDENTE']
         
         if not df_improcedentes.empty:
-            ranking_agentes = df_improcedentes['Agente'].value_counts().sort_values(ascending=True)
+            # CORREÇÃO: Ordenação alterada para decrescente
+            ranking_agentes = df_improcedentes['Agente'].value_counts().sort_values(ascending=False)
             
             fig_ranking = px.bar(
                 ranking_agentes,
@@ -273,7 +272,8 @@ if df_original is not None:
             )
             fig_ranking.update_layout(
                 showlegend=False,
-                xaxis_range=[0, ranking_agentes.values.max() * 1.15]
+                xaxis_range=[0, ranking_agentes.values.max() * 1.15],
+                yaxis={'categoryorder':'total ascending'} # Garante a ordem correta no gráfico
             )
             fig_ranking.update_traces(textposition='outside')
             st.plotly_chart(fig_ranking, use_container_width=True)
