@@ -1,0 +1,19 @@
+# Nome da sua automação (aparecerá na aba Actions)
+name: Wake Up Streamlit App
+
+# Define quando a automação deve ser executada
+on:
+  schedule:
+    # Executa "às 0 minutos, a cada 4 horas, todos os dias"
+    # Você pode ajustar este valor. Use https://crontab.guru/ para ajuda.
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+    # Permite que você execute a automação manualmente a partir da aba Actions
+
+# Define as tarefas que a automação irá executar
+jobs:
+  wakeup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Envia um pedido para acordar o app
+        run: curl -s "https://socmarica.streamlit.app" > /dev/null
