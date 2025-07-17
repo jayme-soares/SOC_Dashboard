@@ -16,7 +16,7 @@ st.set_page_config(
 
 try:
     image = Image.open("imagens/ceneged_cover.jpeg")
-    st.image(image, use_container_width =True)
+    st.image(image, use_container_width=True)
 except FileNotFoundError:
     st.warning("Arquivo de imagem 'imagens/ceneged_cover.jpeg' não encontrado. A imagem do cabeçalho não será exibida.")
 
@@ -197,11 +197,12 @@ if df_original is not None:
     col3,col4 = st.columns(2)
     
     with col3:
-        st.subheader("Pendências Plano de Ação")
+        st.subheader("Pendências Plano de Ação (Geral)")
         
         # O filtro para este gráfico começa com o df_original completo
         df_plano_acao_filtrado = df_original.copy()
         
+        # Aplica apenas os filtros de Agente e Responsável
         if agente_selecionado != 'TODOS':
             df_plano_acao_filtrado = df_plano_acao_filtrado[df_plano_acao_filtrado['Agente'] == agente_selecionado]
         if responsavel_selecionado != 'TODOS':
@@ -234,32 +235,6 @@ if df_original is not None:
                 st.info("Nenhuma pendência de plano de ação para os filtros selecionados.")
         else:
             st.warning("Nenhum dado para exibir com os filtros atuais.")
-            
-    # --- NOVO GRÁFICO: Ranking de Improcedentes por Agente ---
-    with col4:
-        st.subheader("Improcedentes por Agente")
-        df_improcedentes = df_filtrado[df_filtrado['Status'] == 'IMPROCEDENTE']
-        
-        if not df_improcedentes.empty:
-            ranking_agentes = df_improcedentes['Agente'].value_counts().sort_values(ascending=True)
-            
-            fig_ranking = px.bar(
-                ranking_agentes,
-                x=ranking_agentes.values,
-                y=ranking_agentes.index,
-                orientation='h',
-                title="Top Agentes com Improcedentes",
-                text=ranking_agentes.values,
-                labels={'x': 'Quantidade de Improcedentes', 'y': 'Agente'}
-            )
-            fig_ranking.update_layout(
-                showlegend=False,
-                xaxis_range=[0, ranking_agentes.values.max() * 1.15]
-            )
-            fig_ranking.update_traces(textposition='outside')
-            st.plotly_chart(fig_ranking, use_container_width=True)
-        else:
-            st.info("Nenhum erro encontrado para gerar o ranking.")
 
     with col4:
         st.subheader("Ranking de Improcedentes por Agente")
