@@ -70,11 +70,7 @@ def carregar_dados_de_gsheets(url_planilha):
                 st.error(f"Erro Crítico: A coluna '{col}' não foi encontrada na sua planilha. Verifique se o nome na planilha é exatamente este.")
                 return None
 
-<<<<<<< HEAD
         # 4. Padroniza colunas de texto (sem converter data ou remover linhas)
-=======
-        # 4. Padroniza colunas de texto (sem converter data ainda)
->>>>>>> cbd80b4148f72a533078b158763923b128cd300b
         colunas_para_padronizar = ['Status', 'Erro', 'Agente', 'Responsável', 'Status Plano Ação']
         for col in colunas_para_padronizar:
             df[col] = df[col].astype(str).str.strip().str.upper()
@@ -99,7 +95,6 @@ df_original = carregar_dados_de_gsheets(URL_DA_PLANILHA)
 if df_original is not None:
     
     # --- Processamento de Datas (feito aqui para não afetar o df_original) ---
-<<<<<<< HEAD
     df_para_filtrar_data = df_original.copy()
     df_para_filtrar_data['Data da analise'] = pd.to_datetime(df_para_filtrar_data['Data da analise'], errors='coerce')
     
@@ -110,19 +105,6 @@ if df_original is not None:
     df_datas_validas = df_para_filtrar_data.dropna(subset=['Data da analise'])
     data_min = df_datas_validas['Data da analise'].min().date()
     data_max = df_datas_validas['Data da analise'].max().date()
-=======
-    df_com_data = df_original.copy()
-    df_com_data['Data da analise'] = df_com_data['Data da analise'].replace('', pd.NaT)
-    df_com_data['Data da analise'] = pd.to_datetime(df_com_data['Data da analise'], errors='coerce')
-    df_com_data_valida = df_com_data.dropna(subset=['Data da analise'])
-
-    # --- BARRA LATERAL COM FILTROS GLOBAIS ---
-    st.sidebar.header("Filtros")
-
-    # Filtro de Data
-    data_min = df_com_data_valida['Data da analise'].min().date()
-    data_max = df_com_data_valida['Data da analise'].max().date()
->>>>>>> cbd80b4148f72a533078b158763923b128cd300b
     data_inicio = st.sidebar.date_input('Data de Início', data_min, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
     data_fim = st.sidebar.date_input('Data de Fim', data_max, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
 
@@ -139,7 +121,6 @@ if df_original is not None:
     responsavel_selecionado = st.sidebar.selectbox("Responsável", responsaveis_disponiveis)
 
     # --- Aplicação dos Filtros ---
-<<<<<<< HEAD
     # Começa com o dataframe que tem as datas convertidas (incluindo NaT)
     df_filtrado = df_para_filtrar_data.copy()
 
@@ -147,12 +128,6 @@ if df_original is not None:
     df_filtrado = df_filtrado[
         (df_filtrado['Data da analise'].dt.date >= data_inicio) &
         (df_filtrado['Data da analise'].dt.date <= data_fim)
-=======
-    # DataFrame principal, que respeita TODOS os filtros
-    df_filtrado = df_com_data_valida[
-        (df_com_data_valida['Data da analise'].dt.date >= data_inicio) &
-        (df_com_data_valida['Data da analise'].dt.date <= data_fim)
->>>>>>> cbd80b4148f72a533078b158763923b128cd300b
     ]
     
     # Aplica os outros filtros
@@ -224,15 +199,8 @@ if df_original is not None:
     with col3:
         st.subheader("Pendências Plano de Ação")
         
-<<<<<<< HEAD
         # O filtro para este gráfico começa com o df_original completo
         df_plano_acao_filtrado = df_original.copy()
-=======
-        df_plano_acao_filtrado = df_com_data_valida[
-            (df_com_data_valida['Data da analise'].dt.date >= data_inicio) &
-            (df_com_data_valida['Data da analise'].dt.date <= data_fim)
-        ]
->>>>>>> cbd80b4148f72a533078b158763923b128cd300b
         
         if agente_selecionado != 'TODOS':
             df_plano_acao_filtrado = df_plano_acao_filtrado[df_plano_acao_filtrado['Agente'] == agente_selecionado]
