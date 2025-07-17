@@ -2,7 +2,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from datetime import date, datetime # Adicionado datetime
+from datetime import date, datetime
 from PIL import Image
 import gspread
 from google.oauth2.service_account import Credentials
@@ -65,36 +65,49 @@ if df_raw is not None:
             st.error(f"Erro Crítico: A coluna '{col}' não foi encontrada na sua planilha.")
             st.stop()
 
-    # Limpeza e padronização das colunas de texto
     for col in ['Status', 'Erro', 'Agente', 'Responsável', 'Status Plano Ação']:
         df_prepared[col] = df_prepared[col].astype(str).str.strip().str.upper()
     
-    # **NOVO: Conversão da coluna de data**
-    # Converte a coluna para datetime, tratando erros (datas inválidas se tornarão NaT)
     df_prepared['Data da analise'] = pd.to_datetime(df_prepared['Data da analise'], errors='coerce', dayfirst=True)
-    
-    # Remove linhas onde a data não pôde ser convertida
     df_prepared.dropna(subset=['Data da analise'], inplace=True)
 
-    # Cria a base de dados principal, contendo apenas as linhas que foram de facto fiscalizadas.
     df_base = df_prepared[df_prepared['Status'].isin(['PROCEDENTE', 'IMPROCEDENTE'])].copy()
+    df_base['Mês Ano'] = df_base['Data da analise'].dt.strftime('%Y/%m')
 
     # --- 2. BARRA LATERAL E FILTROS ---
     st.sidebar.header("Filtros")
-
-    # **NOVO: Filtro de Data**
     st.sidebar.subheader("Período da Análise")
-    # Define as datas mínima e máxima com base nos dados disponíveis
-    data_min = df_base['Data da analise'].min().date()
-    data_max = df_base['Data da analise'].max().date()
 
-    data_inicio = st.sidebar.date_input('Data de Início', data_min, min_value=data_min, max_value=data_max, format="DD/MM/YYYY")
-    data_fim = st.sidebar.date_input('Data de Fim', data_max, min_value=data_min, max_value=data_max, format="DD/MM/YYYY")
+    # Filtro de Mês Referência
+    meses_disponiveis = sorted(df_base['Mês Ano'].unique(), reverse=True)
+    mes_selecionado = st.sidebar.selectbox("Mês Referência", ['TODOS'] + meses_disponiveis)
     
-    # Converte as datas de início e fim para datetime para a comparação
-    data_inicio_dt = datetime.combine(data_inicio, datetime.min.time())
-    data_fim_dt = datetime.combine(data_fim, datetime.max.time())
+    # **NOVO: Lógica do Slider de Datas Dinâmico**
+    # Define o dataframe a ser usado pelo slider (ou todos os dados, ou os dados do mês selecionado)
+    df_para_slider = df_base[df_base['Mês Ano'] == mes_selecionado] if mes_selecionado != 'TODOS' else df_base
 
+    if not df_para_slider.empty:
+        # Pega a data mínima e máxima do dataframe filtrado pelo mês
+        data_min_slider = df_para_slider['Data da analise'].min().date()
+        data_max_slider = df_para_slider['Data da analise'].max().date()
+        
+        # Cria a lista de opções para o slider (todos os dias no intervalo)
+        opcoes_slider = pd.to_datetime(pd.date_range(start=data_min_slider, end=data_max_slider, freq='D')).date
+        
+        # Cria o slider
+        data_selecionada = st.sidebar.select_slider(
+            "Selecione um intervalo de datas específico:",
+            options=opcoes_slider,
+            value=(data_min_slider, data_max_slider),
+            format_func=lambda date: pd.to_datetime(date).strftime('%d/%m/%Y')
+        )
+        
+        # Extrai data de início e fim do slider
+        data_inicio, data_fim = data_selecionada
+    else:
+        # Caso não haja dados para o mês, desabilita o slider
+        st.sidebar.info("Não há dados para o mês selecionado.")
+        data_inicio, data_fim = None, None
 
     st.sidebar.subheader("Outros Filtros")
     agente_selecionado = st.sidebar.selectbox("Agente", ['TODOS'] + sorted(df_base['Agente'].unique()))
@@ -104,8 +117,11 @@ if df_raw is not None:
     # --- 3. APLICAÇÃO SEQUENCIAL DOS FILTROS ---
     df_filtrado = df_base.copy()
 
-    # **NOVO: Aplicação do filtro de data**
-    df_filtrado = df_filtrado[(df_filtrado['Data da analise'] >= data_inicio_dt) & (df_filtrado['Data da analise'] <= data_fim_dt)]
+    # **NOVO: Aplicação do filtro de data do slider**
+    if data_inicio and data_fim:
+        data_inicio_dt = datetime.combine(data_inicio, datetime.min.time())
+        data_fim_dt = datetime.combine(data_fim, datetime.max.time())
+        df_filtrado = df_filtrado[(df_filtrado['Data da analise'] >= data_inicio_dt) & (df_filtrado['Data da analise'] <= data_fim_dt)]
 
     # Filtros Categóricos
     if agente_selecionado != 'TODOS':
@@ -115,11 +131,14 @@ if df_raw is not None:
     if responsavel_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Responsável'] == responsavel_selecionado]
 
-    # --- 4. KPIs E GRÁFICOS (usando o df_filtrado como fonte única) ---
-    st.markdown(f"### Resumo do Período ({data_inicio.strftime('%d/%m/%Y')} a {data_fim.strftime('%d/%m/%Y')})")
-    
+    # --- 4. KPIs E GRÁFICOS ---
+    if data_inicio and data_fim:
+        st.markdown(f"### Resumo do Período ({data_inicio.strftime('%d/%m/%Y')} a {data_fim.strftime('%d/%m/%Y')})")
+    else:
+        st.markdown("### Resumo Geral do Período")
+
     if df_filtrado.empty:
-        st.warning("Nenhum dado encontrado para os filtros selecionados. Por favor, ajuste os filtros e o período.")
+        st.warning("Nenhum dado encontrado para os filtros selecionados. Por favor, ajuste os filtros.")
     else:
         total_fiscalizado = len(df_filtrado)
         df_com_erros = df_filtrado[df_filtrado['Erro'] != '']
@@ -189,9 +208,8 @@ if df_raw is not None:
                 st.info("Nenhum erro encontrado para gerar o ranking.")
 
         with st.expander("Ver dados detalhados da fiscalização"):
-            # Formata a coluna de data para exibição no dataframe
             df_display = df_filtrado.copy()
             df_display['Data da analise'] = df_display['Data da analise'].dt.strftime('%d/%m/%Y')
-            st.dataframe(df_display)
+            st.dataframe(df_display.drop(columns=['Mês Ano'])) # Remove a coluna auxiliar
 else:
     st.warning("Aguardando dados da planilha... Verifique a URL e as configurações de partilha.")
