@@ -124,17 +124,17 @@ if df_raw is not None:
     data_fim = st.sidebar.date_input('Data de Fim', data_max, min_value=data_min, max_value=data_max, format="DD-MM-YYYY")
 
     # --- Aplicação dos Filtros ---
+    # Começa com a base de dados já limpa e com status válidos
     df_filtrado = df_original.copy()
 
-    # Aplica filtro de data apenas se o utilizador o alterar.
-    if data_inicio != data_min or data_fim != data_max:
-        df_filtrado_com_data = df_filtrado.dropna(subset=['Data da analise'])
-        df_filtrado = df_filtrado_com_data[
-            (df_filtrado_com_data['Data da analise'].dt.date >= data_inicio) &
-            (df_filtrado_com_data['Data da analise'].dt.date <= data_fim)
-        ]
+    # 1. Aplica o filtro de data (remove linhas com data inválida para o período)
+    df_filtrado_com_data = df_filtrado.dropna(subset=['Data da analise'])
+    df_filtrado = df_filtrado_com_data[
+        (df_filtrado_com_data['Data da analise'].dt.date >= data_inicio) &
+        (df_filtrado_com_data['Data da analise'].dt.date <= data_fim)
+    ]
 
-    # Aplica os filtros categóricos ao resultado
+    # 2. Aplica os filtros categóricos ao resultado do filtro de data
     if agente_selecionado != 'TODOS':
         df_filtrado = df_filtrado[df_filtrado['Agente'] == agente_selecionado]
     if status_selecionado != 'TODOS':
@@ -204,7 +204,7 @@ if df_raw is not None:
     with col3:
         st.subheader("Pendências Plano de Ação")
         
-        # Cria um dataframe específico para este gráfico
+        # Cria um dataframe específico para este gráfico, começando pelo df_filtrado
         df_plano_acao_filtrado = df_filtrado[df_filtrado['Status Plano Ação'].isin(['PENDENTE', 'REALIZADO'])]
 
         if not df_plano_acao_filtrado.empty:
@@ -222,7 +222,7 @@ if df_raw is not None:
             )
             fig_bar2.update_layout(
                 showlegend=False,
-                yaxis_range=[0, status_acao.values.max() * 1.15]
+                yaxis_range=[0, status_acao.values.max() * 1.15] if status_acao.values.max() > 0 else [0, 1]
             )
             fig_bar2.update_traces(textposition='outside')
             st.plotly_chart(fig_bar2, use_container_width=True)
