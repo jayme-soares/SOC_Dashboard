@@ -10,7 +10,7 @@ from google.oauth2.service_account import Credentials
 # --- Configuração da Página ---
 st.set_page_config(
     page_title="Dashboard de Fiscalização",
-    page_icon="🔍",
+    page_icon="�",
     layout="wide"
 )
 
@@ -72,7 +72,7 @@ if df_raw is not None:
     df_prepared.dropna(subset=['Data da analise'], inplace=True)
 
     df_base = df_prepared[df_prepared['Status'].isin(['PROCEDENTE', 'IMPROCEDENTE'])].copy()
-    df_base['Mês Ano'] = df_base['Data da analise'].dt.strftime('%Y/%m')
+    df_base['Mês Ano'] = df_base['Data da analise'].dt.strftime('%m/%Y')
 
     # --- 2. BARRA LATERAL E FILTROS ---
     st.sidebar.header("Filtros")
@@ -82,7 +82,6 @@ if df_raw is not None:
     meses_disponiveis = sorted(df_base['Mês Ano'].unique(), reverse=True)
     mes_selecionado = st.sidebar.selectbox("Mês Referência", ['TODOS'] + meses_disponiveis)
     
-    # **NOVO: Lógica do Slider de Datas Dinâmico**
     # Define o dataframe a ser usado pelo slider (ou todos os dados, ou os dados do mês selecionado)
     df_para_slider = df_base[df_base['Mês Ano'] == mes_selecionado] if mes_selecionado != 'TODOS' else df_base
 
@@ -91,15 +90,14 @@ if df_raw is not None:
         data_min_slider = df_para_slider['Data da analise'].min().date()
         data_max_slider = df_para_slider['Data da analise'].max().date()
         
-        # Cria a lista de opções para o slider (todos os dias no intervalo)
-        opcoes_slider = pd.to_datetime(pd.date_range(start=data_min_slider, end=data_max_slider, freq='D')).date
-        
-        # Cria o slider
-        data_selecionada = st.sidebar.select_slider(
-            "Selecione um intervalo de datas específico:",
-            options=opcoes_slider,
+        # **NOVO: Lógica do Slider de Datas com st.slider para melhor visualização**
+        # Cria o slider de intervalo de datas. st.slider com datas evita a repetição do valor.
+        data_selecionada = st.sidebar.slider(
+            "Selecione o intervalo de datas:",
+            min_value=data_min_slider,
+            max_value=data_max_slider,
             value=(data_min_slider, data_max_slider),
-            format_func=lambda date: pd.to_datetime(date).strftime('%d/%m/%Y')
+            format="DD/MM/YYYY"
         )
         
         # Extrai data de início e fim do slider
@@ -117,11 +115,10 @@ if df_raw is not None:
     # --- 3. APLICAÇÃO SEQUENCIAL DOS FILTROS ---
     df_filtrado = df_base.copy()
 
-    # **NOVO: Aplicação do filtro de data do slider**
+    # Aplicação do filtro de data do slider
     if data_inicio and data_fim:
-        data_inicio_dt = datetime.combine(data_inicio, datetime.min.time())
-        data_fim_dt = datetime.combine(data_fim, datetime.max.time())
-        df_filtrado = df_filtrado[(df_filtrado['Data da analise'] >= data_inicio_dt) & (df_filtrado['Data da analise'] <= data_fim_dt)]
+        # Garante que a comparação seja feita apenas com a parte da data
+        df_filtrado = df_filtrado[df_filtrado['Data da analise'].dt.date.between(data_inicio, data_fim)]
 
     # Filtros Categóricos
     if agente_selecionado != 'TODOS':
