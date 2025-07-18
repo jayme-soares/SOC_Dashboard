@@ -14,6 +14,14 @@ st.set_page_config(
     layout="wide"
 )
 
+st.markdown("""
+<style>
+    div[data-testid="stSlider"] > div > div:last-of-type {
+        display: none;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # --- Carregamento e Limpeza dos Dados ---
 @st.cache_data
 def carregar_dados_de_gsheets(url_planilha):
