@@ -205,12 +205,17 @@ if df_raw is not None:
                                        orientation='h', title="Top Agentes com Improcedentes",
                                        text=ranking_agentes.values, labels={'x': 'Quantidade de Improcedentes', 'y': 'Agente'})
                 
-                fig_ranking.update_layout(showlegend=False, xaxis_range=[0, ranking_agentes.values.max() * 1.15])
+                # AJUSTE: A ordenação agora é aplicada sempre, fora do bloco condicional.
+                fig_ranking.update_layout(
+                    showlegend=False, 
+                    xaxis_range=[0, ranking_agentes.values.max() * 1.15],
+                    yaxis={'categoryorder':'total ascending'}
+                )
                 
-                # Aplica a formatação condicionalmente
+                # Aplica a formatação de cores e negrito condicionalmente
                 if alto_contraste:
                     fig_ranking.update_layout(
-                        yaxis={'categoryorder':'total ascending', 'title_font':{'weight':'bold', 'color':'black'}, 'tickfont':{'weight':'bold', 'color':'black'}},
+                        yaxis={'title_font':{'weight':'bold', 'color':'black'}, 'tickfont':{'weight':'bold', 'color':'black'}},
                         xaxis={'title_font':{'weight':'bold', 'color':'black'}, 'tickfont':{'weight':'bold', 'color':'black'}}
                     )
                 
