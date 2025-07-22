@@ -150,7 +150,13 @@ if df_raw is not None:
                 fig_bar = px.bar(erros_counts, x=erros_counts.index, y=erros_counts.values,
                                    title="Quantidade por Tipo de Erro", text=erros_counts.values,
                                    labels={'x': 'Tipo de Erro', 'y': 'Quantidade'})
-                fig_bar.update_layout(showlegend=False, yaxis_range=[0, erros_counts.values.max() * 1.15])
+                # AJUSTE: Coloca os textos dos eixos em negrito
+                fig_bar.update_layout(
+                    showlegend=False, 
+                    yaxis_range=[0, erros_counts.values.max() * 1.15],
+                    xaxis={'title_font':{'weight':'bold'}},
+                    yaxis={'title_font':{'weight':'bold'}}
+                )
                 fig_bar.update_traces(textposition='outside')
                 st.plotly_chart(fig_bar, use_container_width=True)
             else:
@@ -167,7 +173,13 @@ if df_raw is not None:
                                     title="Pendências por Status do Plano de Ação", text=status_acao.values,
                                     labels={'x': 'Status Plano de Ação', 'y': 'Quantidade'},
                                     color=status_acao.index, color_discrete_map={'REALIZADO':'#90ee90', 'PENDENTE':'#f08080'})
-                fig_bar2.update_layout(showlegend=False, yaxis_range=[0, status_acao.values.max() * 1.15 if not status_acao.empty else 1])
+                # AJUSTE: Coloca os textos dos eixos em negrito
+                fig_bar2.update_layout(
+                    showlegend=False, 
+                    yaxis_range=[0, status_acao.values.max() * 1.15 if not status_acao.empty else 1],
+                    xaxis={'title_font':{'weight':'bold'}},
+                    yaxis={'title_font':{'weight':'bold'}}
+                )
                 fig_bar2.update_traces(textposition='outside')
                 st.plotly_chart(fig_bar2, use_container_width=True)
             else:
@@ -181,8 +193,13 @@ if df_raw is not None:
                 fig_ranking = px.bar(ranking_agentes, x=ranking_agentes.values, y=ranking_agentes.index,
                                        orientation='h', title="Top Agentes com Improcedentes",
                                        text=ranking_agentes.values, labels={'x': 'Quantidade de Improcedentes', 'y': 'Agente'})
-                fig_ranking.update_layout(showlegend=False, xaxis_range=[0, ranking_agentes.values.max() * 1.15],
-                                            yaxis={'categoryorder':'total ascending'})
+                # AJUSTE: Coloca os textos dos eixos em negrito
+                fig_ranking.update_layout(
+                    showlegend=False, 
+                    xaxis_range=[0, ranking_agentes.values.max() * 1.15],
+                    yaxis={'categoryorder':'total ascending', 'title_font':{'weight':'bold'}},
+                    xaxis={'title_font':{'weight':'bold'}}
+                )
                 fig_ranking.update_traces(textposition='outside')
                 st.plotly_chart(fig_ranking, use_container_width=True)
             else:
