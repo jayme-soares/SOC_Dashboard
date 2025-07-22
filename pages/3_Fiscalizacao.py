@@ -154,8 +154,8 @@ if df_raw is not None:
                 fig_bar.update_layout(
                     showlegend=False, 
                     yaxis_range=[0, erros_counts.values.max() * 1.15],
-                    xaxis={'title_font':{'weight':'bold'}, 'tickfont':{'weight':'bold'}},
-                    yaxis={'title_font':{'weight':'bold'}, 'tickfont':{'weight':'bold'}}
+                    xaxis={'title_font':{'weight':'bold'}, 'tickfont':{'weight':'bold', 'color':'black'}},
+                    yaxis={'title_font':{'weight':'bold'}, 'tickfont':{'weight':'bold', 'color':'black'}}
                 )
                 fig_bar.update_traces(textposition='outside')
                 st.plotly_chart(fig_bar, use_container_width=True)
@@ -177,8 +177,8 @@ if df_raw is not None:
                 fig_bar2.update_layout(
                     showlegend=False, 
                     yaxis_range=[0, status_acao.values.max() * 1.15 if not status_acao.empty else 1],
-                    xaxis={'title_font':{'weight':'bold'}, 'tickfont':{'weight':'bold'}},
-                    yaxis={'title_font':{'weight':'bold'}, 'tickfont':{'weight':'bold'}}
+                    xaxis={'title_font':{'weight':'bold'}, 'tickfont':{'weight':'bold', 'color':'black'}},
+                    yaxis={'title_font':{'weight':'bold'}, 'tickfont':{'weight':'bold', 'color':'black'}}
                 )
                 fig_bar2.update_traces(textposition='outside')
                 st.plotly_chart(fig_bar2, use_container_width=True)
@@ -197,8 +197,8 @@ if df_raw is not None:
                 fig_ranking.update_layout(
                     showlegend=False, 
                     xaxis_range=[0, ranking_agentes.values.max() * 1.15],
-                    yaxis={'categoryorder':'total ascending', 'title_font':{'weight':'bold'}, 'tickfont':{'weight':'bold'}},
-                    xaxis={'title_font':{'weight':'bold'}, 'tickfont':{'weight':'bold'}}
+                    yaxis={'categoryorder':'total ascending', 'title_font':{'weight':'bold'}, 'tickfont':{'weight':'bold', 'color':'black'}},
+                    xaxis={'title_font':{'weight':'bold'}, 'tickfont':{'weight':'bold', 'color':'black'}}
                 )
                 fig_ranking.update_traces(textposition='outside')
                 st.plotly_chart(fig_ranking, use_container_width=True)
